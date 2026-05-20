@@ -1,0 +1,2005 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sporthink Sentinel AI | Gerçek Zamanlı SIEM Paneli</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+  <style>
+    :root{
+      --nav:#0f172a; --nav2:#020617; --bg:#f8fafc; --card:#ffffff;
+      --text:#0f172a; --muted:#64748b; --border:#e2e8f0;
+      --blue:#2563eb; --blue-soft:#eff6ff; --green:#16a34a; --green-soft:#f0fdf4;
+      --red:#dc2626; --red-soft:#fef2f2; --amber:#d97706; --amber-soft:#fffbeb;
+      --purple:#7c3aed; --purple-soft:#f3e8ff;
+      --shadow:0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{ font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background-color: var(--bg); color: var(--text); overflow-x: hidden; }
+    
+    .app{ display:grid; grid-template-columns:260px 1fr; min-height:100vh; }
+    aside{ position:fixed; width:260px; height:100vh; background: linear-gradient(180deg, var(--nav), var(--nav2)); color:white; display:flex; flex-direction:column; border-right: 1px solid #1e293b; z-index: 50; }
+    
+    .brand{ padding: 24px; border-bottom: 1px solid #1e293b; display:flex; flex-direction:column; align-items:center; gap:12px; }
+    .logo-wrapper { background: #ffffff; padding: 8px 10px; border-radius: 8px; width: 100%; height: 65px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden; }
+    .logo-wrapper img { width: 100%; transform: scale(1.0); object-fit: contain; }
+    .brand span{ display:block; font-size:11px; font-weight:800; letter-spacing:1px; color:#64748b; text-transform: uppercase; text-align: center; }
+
+    nav{ padding: 20px 12px; display:flex; flex-direction:column; gap:8px; flex:1; }
+    .nav-item{ padding: 12px 16px; border-radius: 8px; color: #cbd5e1; font-size: 14px; font-weight: 600; display:flex; align-items:center; gap:12px; cursor: pointer; transition: 0.2s; }
+    .nav-item:hover, .nav-item.active{ background: #1e293b; color: white; }
+    .nav-item i{ width: 20px; text-align: center; color: var(--amber); }
+
+
+    .nav-item{
+position:relative;
+transition:all .18s ease;
+}
+
+.nav-item:hover{
+transform:translateX(4px);
+}
+
+.nav-item.active{
+
+background:linear-gradient(
+90deg,
+rgba(37,99,235,.18),
+rgba(37,99,235,.03)
+);
+
+border-left:4px solid var(--blue);
+
+font-weight:900;
+}
+
+.nav-item.active::before{
+
+content:"";
+
+position:absolute;
+
+left:-8px;
+top:50%;
+
+transform:translateY(-50%);
+
+width:8px;
+height:8px;
+
+border-radius:50%;
+
+background:var(--blue);
+
+box-shadow:
+0 0 12px rgba(37,99,235,.7);
+
+}
+
+
+    main{ grid-column:2; }
+    header{ height:80px; background:white; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 32px; position:sticky; top:0; z-index:20; }
+    .header-title h2{ font-size: 20px; font-weight: 700; color: var(--text); }
+    .header-title p{ font-size: 13px; color: var(--muted); margin-top: 4px; }
+    
+    .content{ padding: 32px; }
+
+    .dashboard-grid{ display:grid; grid-template-columns: 2fr 1.2fr; gap:24px; margin-bottom: 24px; }
+    
+    .panel{ background:white; border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); overflow: hidden; margin-bottom: 24px;}
+
+.panel{
+  transition:
+  transform .25s ease,
+  box-shadow .25s ease,
+  border-color .25s ease;
+}
+
+.panel:hover{
+
+transform:translateY(-4px);
+
+box-shadow:
+0 12px 28px rgba(15,23,42,.08);
+
+}
+
+
+.panel{
+  position:relative;
+}
+
+.panel::before{
+  content:"";
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:3px;
+  background:linear-gradient(90deg, var(--blue), var(--purple));
+  opacity:.0;
+  transition:opacity .18s ease;
+}
+
+.panel:hover::before{
+  opacity:1;
+}
+
+
+.panel:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -12px rgba(15,23,42,.22);
+  border-color: #cbd5e1;
+}
+
+.soc-kpi-grid .panel:hover{
+  border-color: rgba(37,99,235,.35);
+}
+
+.data-table tbody tr{
+  transition: background .15s ease;
+}
+
+.risk-kritik{
+background:rgba(239,68,68,.08);
+color:#dc2626;
+padding:6px 10px;
+border-radius:999px;
+font-weight:900;
+display:inline-block;
+}
+
+.risk-yüksek{
+background:rgba(245,158,11,.10);
+color:#d97706;
+padding:6px 10px;
+border-radius:999px;
+font-weight:900;
+display:inline-block;
+}
+
+.risk-orta{
+background:rgba(59,130,246,.10);
+color:#2563eb;
+padding:6px 10px;
+border-radius:999px;
+font-weight:900;
+display:inline-block;
+}
+
+.risk-düşük{
+background:rgba(100,116,139,.10);
+color:#64748b;
+padding:6px 10px;
+border-radius:999px;
+font-weight:900;
+display:inline-block;
+}
+
+
+    .panel-header{ padding: 16px 20px; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background: #f8fafc;}
+    .panel-title{ font-size: 15px; font-weight: 700; color: var(--text); display:flex; align-items:center; gap:8px;}
+    .panel-desc{ font-size: 12px; color: var(--muted); font-weight: 500; margin-top: 4px; }
+    .panel-body{ padding: 20px; }
+
+    .data-table{ width: 100%; border-collapse: collapse; }
+    .data-table th{
+ text-align:left;
+ padding:12px 16px;
+ border-bottom:2px solid var(--border);
+ color:var(--muted);
+ font-size:12px;
+ text-transform:uppercase;
+ font-weight:700;
+ background:#f8fafc;
+
+ position:sticky;
+ top:0;
+ z-index:5;
+}
+    .data-table td{ padding: 16px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 500; color: var(--text); vertical-align: middle;}
+    .data-table tbody tr{
+transition:
+background .2s ease,
+transform .2s ease;
+}
+
+.data-table tr:hover{
+background:#f8fafc;
+transform:scale(1.003);
+
+box-shadow:
+inset 4px 0 0 var(--blue);
+}
+    
+    .badge{ padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;}
+    .badge-red{ background: var(--red-soft); color: var(--red); }
+    .badge-blue{ background: var(--blue-soft); color: var(--blue); }
+    .badge-amber{ background: var(--amber-soft); color: var(--amber); }
+
+    .ai-box { background: var(--purple-soft); border-left: 3px solid var(--purple); padding: 10px 12px; border-radius: 4px 8px 8px 4px; font-size: 12px; color: #4c1d95; font-weight: 600; line-height: 1.5; margin-top: 6px;}
+    
+    .loading-text { font-style: italic; color: var(--muted); font-size: 13px; padding: 20px; text-align: center; }
+
+    .view-section{
+display:none;
+opacity:0;
+transform:translateY(8px);
+}
+
+.view-section.active{
+display:block;
+animation:fadeSection .45s ease forwards;
+}
+
+@keyframes fadeSection{
+
+from{
+opacity:0;
+transform:translateY(8px);
+}
+
+to{
+opacity:1;
+transform:translateY(0);
+}
+
+}
+
+
+.soc-kpi-grid .panel:first-child{
+  animation: criticalGlow 3s infinite;
+}
+
+@keyframes criticalGlow{
+  0%{
+    box-shadow:0 4px 6px -1px rgba(0,0,0,.05);
+  }
+
+  50%{
+    box-shadow:0 0 18px rgba(220,38,38,.22);
+    border-color:rgba(220,38,38,.35);
+  }
+
+  100%{
+    box-shadow:0 4px 6px -1px rgba(0,0,0,.05);
+  }
+}
+
+
+@keyframes pulseDot{
+
+0%{
+opacity:.4;
+transform:scale(.9);
+}
+
+50%{
+opacity:1;
+transform:scale(1.2);
+}
+
+100%{
+opacity:.4;
+transform:scale(.9);
+}
+
+}
+
+.live-dot{
+
+width:10px;
+height:10px;
+
+border-radius:50%;
+
+background:#22c55e;
+
+display:inline-block;
+
+animation:pulseDot 1.8s infinite;
+
+box-shadow:
+0 0 10px rgba(34,197,94,.5);
+
+}
+
+
+body.executive-mode{
+  --bg:#020617;
+  --card:#0f172a;
+  --text:#e5e7eb;
+  --muted:#94a3b8;
+  --border:#1e293b;
+  --shadow:0 18px 40px rgba(0,0,0,.35);
+}
+
+body.executive-mode header,
+body.executive-mode .panel,
+body.executive-mode .panel-header{
+  background:#0f172a;
+  color:var(--text);
+  border-color:var(--border);
+}
+
+body.executive-mode .data-table th{
+  background:#111827;
+}
+
+body.executive-mode .data-table tr:hover{
+  background:#111827;
+}
+
+body.executive-mode .data-table td{
+  color:var(--text);
+}
+
+body.executive-mode input,
+body.executive-mode button{
+  background:#111827 !important;
+  color:#e5e7eb !important;
+  border-color:#334155 !important;
+}
+
+
+
+  </style>
+</head>
+<body>
+
+  <div class="app">
+    <aside>
+      <div class="brand">
+        <div class="logo-wrapper">
+          <img src="logo.jpg" alt="Sporthink Logo" onerror="this.outerHTML='<span style=\'color:black;font-weight:bold;\'>SPORTHINK</span>'" />
+        </div>
+        <span>AI-Driven SIEM Panel</span>
+      </div>
+      <nav>
+        <div class="nav-item active" onclick="switchTab('tab-dashboard', this)"><i class="fa-solid fa-chart-pie"></i> Yönetici Özeti</div>
+        <div class="nav-item" onclick="switchTab('tab-users', this)"><i class="fa-solid fa-users-viewfinder"></i> Kimlik & IP İzleme</div>
+        <div class="nav-item" onclick="switchTab('tab-auditd', this)"><i class="fa-solid fa-database"></i> SQL & Auditd Logları</div>
+      </nav>
+      <div style="padding: 20px; border-top: 1px solid #1e293b; font-size: 12px; color: #64748b;">
+        <p><i id="db-status-icon" class="fa-solid fa-spinner fa-spin" style="color: var(--amber); margin-right: 5px;"></i> <span id="db-status-text">Gerçek Veriler Bekleniyor...</span></p>
+      </div>
+    </aside>
+
+    <main>
+      <header>
+        <div class="header-title">
+          <h2 id="header-title-text">Merkezi Güvenlik İzleme ve Davranış Analizi Platformu</h2>
+          <p id="header-desc-text"> Windows • Linux • MSSQL • Kullanıcı Davranışı • Korelasyon • Audit İzleme </p>
+        </div>
+        <div style="display:flex; align-items:center; gap: 12px; font-size: 14px; font-weight: 600;">
+          <div style="
+background:var(--green-soft);
+color:var(--green);
+padding:7px 12px;
+border-radius:999px;
+font-size:12px;
+font-weight:900;
+display:flex;
+align-items:center;
+gap:7px;
+">
+<span class="live-dot" style="width:8px;height:8px;"></span>
+Gerçek Zamanlı İzleme
+</div>
+
+<button onclick="toggleExecutiveMode()" style="
+border:1px solid var(--border);
+background:white;
+color:var(--text);
+padding:7px 12px;
+border-radius:999px;
+font-size:12px;
+font-weight:900;
+cursor:pointer;
+display:flex;
+align-items:center;
+gap:7px;
+">
+<i class="fa-solid fa-moon"></i>
+Executive Mode
+</button>
+
+
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--nav); color:white; display:flex; align-items:center; justify-content:center;">PM</div>
+        </div>
+      </header>
+
+      <section class="content">
+        
+        <div id="tab-dashboard" class="view-section active">
+          <div class="soc-kpi-grid" style="display:grid; grid-template-columns: repeat(5, 1fr); gap:16px; margin-bottom:24px;">
+
+  <div class="panel" style="padding:18px; margin-bottom:0;">
+    <div style="font-size:12px;color:var(--muted);font-weight:800;">KRİTİK OLAY</div>
+    <div id="soc-critical-count" style="font-size:28px;font-weight:900;color:var(--red);">-</div>
+
+<div id="critical-trend" style="
+font-size:11px;
+margin-top:6px;
+font-weight:800;
+color:var(--red);
+">
+Son 24 saat hesaplanıyor...
+</div>
+
+  </div>
+
+  <div class="panel" style="padding:18px; margin-bottom:0;">
+    <div style="font-size:12px;color:var(--muted);font-weight:800;">KİMLİK RİSKİ</div>
+    <div id="soc-identity-count" style="font-size:28px;font-weight:900;color:var(--amber);">-</div>
+  </div>
+
+  <div class="panel" style="padding:18px; margin-bottom:0;">
+    <div style="font-size:12px;color:var(--muted);font-weight:800;">YETKİ AKSİYONU</div>
+    <div id="soc-privilege-count" style="font-size:28px;font-weight:900;color:var(--purple);">-</div>
+  </div>
+
+  <div class="panel" style="padding:18px; margin-bottom:0;">
+    <div style="font-size:12px;color:var(--muted);font-weight:800;">VERİ / MSSQL RİSKİ</div>
+    <div id="soc-data-count" style="font-size:28px;font-weight:900;color:var(--blue);">-</div>
+  </div>
+
+  <div class="panel" style="padding:18px; margin-bottom:0;">
+    <div style="font-size:12px;color:var(--muted);font-weight:800;">SON DAVRANIŞ</div>
+    <div id="soc-last-action" style="font-size:13px;font-weight:800;color:var(--text);line-height:1.4;">-</div>
+  </div>
+</div>
+
+<div class="panel" style="padding:12px 18px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:center;">
+  <div>
+    <div style="display:flex;align-items:center;gap:8px;">
+<span class="live-dot"></span>
+<strong>SOC Durumu:</strong>
+</div>
+<div style="
+font-size:12px;
+color:#64748b;
+font-weight:700;
+margin-top:4px;
+">
+Canlı risk değerlendirmesi
+</div>
+  </div>
+
+  <div id="soc-live-time" style="font-size:13px;color:var(--muted);font-weight:700;">
+    Yükleniyor...
+  </div>
+</div>
+
+            
+
+<div class="panel" style="padding:16px 20px;margin-bottom:24px;border-left:5px solid var(--red);">
+  <div style="display:flex;align-items:flex-start;gap:12px;">
+    <div style="
+      width:36px;
+      height:36px;
+      border-radius:10px;
+      background:var(--red-soft);
+      color:var(--red);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:16px;
+    ">
+      <i class="fa-solid fa-shield-halved"></i>
+    </div>
+
+    <div>
+      <div style="font-size:13px;font-weight:900;color:var(--text);margin-bottom:4px;">
+        Yönetici Risk Yorumu
+      </div>
+
+      <div id="executive-risk-comment" style="font-size:13px;color:var(--muted);line-height:1.5;">
+        Gerçek loglar analiz ediliyor...
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<div class="panel" style="padding:0;margin-bottom:24px;">
+  <div class="panel-header">
+    <div>
+      <h3 class="panel-title">
+        <i class="fa-solid fa-timeline" style="color:var(--red);"></i>
+        Son Kritik Olay Akışı
+      </h3>
+      <p class="panel-desc"> Yönetici özeti için son kritik güvenlik davranışları. </p>
+    </div>
+  </div>
+
+  <div id="critical-timeline" style="padding:18px 20px;">
+    <div class="loading-text">Kritik olay akışı hazırlanıyor...</div>
+  </div>
+</div>
+
+
+
+
+
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px; margin-bottom:24px;">
+  <div class="panel">
+    <div class="panel-header">
+      <div>
+        <h3 class="panel-title">
+          <i class="fa-solid fa-chart-pie" style="color:var(--purple);"></i>
+          Olay Kategorisi Dağılımı
+        </h3>
+        <p class="panel-desc">Gerçek loglardan hesaplanan davranış kategorileri.</p>
+      </div>
+    </div>
+    <div class="panel-body" style="height:260px;">
+      <canvas id="socCategoryChart"></canvas>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <div>
+        <h3 class="panel-title">
+          <i class="fa-solid fa-server" style="color:var(--blue);"></i>
+          En Riskli Sunucular
+        </h3>
+        <p class="panel-desc">Kritik olayların hedef sunucu bazlı yoğunluğu.</p>
+      </div>
+    </div>
+    <div class="panel-body" style="height:260px;">
+      <canvas id="socServerChart"></canvas>
+    </div>
+  </div>
+</div>
+
+
+
+
+          <div class="dashboard-grid" style="grid-template-columns:1fr;">
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="card-title"><i class="fa-solid fa-server" style="color:var(--primary); margin-right:8px;"></i>Agent Health & Resource Monitoring</h3>
+                 <p style="font-size: 13px; color: var(--muted); margin-bottom: 16px;">
+                 Bağlı ajan sistemlerinden gerçek zamanlı donanım (CPU/RAM) ve siber güvenlik olay verileri (SOC) toplanmaktadır.
+                </p>
+                </div>
+              </div>
+              <div class="panel-body" id="hardware-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                <div class="loading-text"><i class="fa-solid fa-circle-notch fa-spin"></i> Donanım verileri Wazuh'tan çekiliyor...</div>
+              </div>
+            </div>
+          </div>
+            
+
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title"><i class="fa-solid fa-user-astronaut"></i> Kullanıcı Ne Yaptı? — Davranış Analizi</h3>
+              </div>
+            </div>
+
+
+
+
+
+            <div class="panel-body" style="padding: 0;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 14%;">Zaman</th>
+<th style="width: 16%;">Kullanıcı</th>
+<th style="width: 16%;">Kaynak / Hedef</th>
+<th style="width: 20%;">Davranış</th>
+<th style="width: 34%;">SOC Yorumu</th>
+                  </tr>
+                </thead>
+                <tbody id="ai-activities-tbody">
+                  <tr><td colspan="4" class="loading-text">Auditd ve Windows logları analiz ediliyor...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+       <div id="tab-users" class="view-section">
+          
+          <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+              <div style="background:#fff; border:1px solid var(--border); border-radius:10px; padding:16px; display:flex; align-items:center; gap:16px; box-shadow:var(--shadow);">
+                  <div style="width:48px; height:48px; border-radius:8px; background:var(--blue-soft); color:var(--blue); display:flex; justify-content:center; align-items:center; font-size:20px;"><i class="fa-solid fa-users"></i></div>
+                  <div><div style="font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Toplam Giriş Olayı</div><div id="kpi-total" style="font-size:24px; font-weight:900; color:var(--text);">-</div></div>
+              </div>
+              <div style="background:#fff; border:1px solid var(--border); border-radius:10px; padding:16px; display:flex; align-items:center; gap:16px; box-shadow:var(--shadow);">
+                  <div style="width:48px; height:48px; border-radius:8px; background:var(--red-soft); color:var(--red); display:flex; justify-content:center; align-items:center; font-size:20px;"><i class="fa-solid fa-shield-virus"></i></div>
+                  <div><div style="font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Başarısız Login</div><div id="kpi-failed" style="font-size:24px; font-weight:900; color:var(--red);">-</div></div>
+              </div>
+              <div style="background:#fff; border:1px solid var(--border); border-radius:10px; padding:16px; display:flex; align-items:center; gap:16px; box-shadow:var(--shadow);">
+                  <div style="width:48px; height:48px; border-radius:8px; background:var(--purple-soft); color:var(--purple); display:flex; justify-content:center; align-items:center; font-size:20px;"><i class="fa-solid fa-network-wired"></i></div>
+                  <div><div style="font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Benzersiz IP</div><div id="kpi-unique-ip" style="font-size:24px; font-weight:900; color:var(--text);">-</div></div>
+              </div>
+              <div style="background:#fff; border:1px solid var(--border); border-radius:10px; padding:16px; display:flex; align-items:center; gap:16px; box-shadow:var(--shadow);">
+                  <div style="width:48px; height:48px; border-radius:8px; background:var(--amber-soft); color:var(--amber); display:flex; justify-content:center; align-items:center; font-size:20px;"><i class="fa-solid fa-user-ninja"></i></div>
+                  <div><div style="font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Şüpheli IP Analizi</div><div id="kpi-suspicious" style="font-size:24px; font-weight:900; color:var(--amber);">-</div></div>
+              </div>
+          </div>
+
+
+<div class="panel" style="padding:14px 18px;margin-bottom:24px;border-left:5px solid var(--amber);">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div style="
+      width:34px;height:34px;border-radius:10px;
+      background:var(--amber-soft);color:var(--amber);
+      display:flex;align-items:center;justify-content:center;">
+      <i class="fa-solid fa-user-shield"></i>
+    </div>
+
+    <div>
+      <div style="font-size:13px;font-weight:900;color:var(--text);">
+        Kimlik Güvenliği Yorumu
+      </div>
+      <div id="identity-risk-comment" style="font-size:13px;color:var(--muted);margin-top:3px;">
+        Giriş davranışları analiz ediliyor...
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+          <div style="display:grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 24px;">
+              <div class="panel" style="margin-bottom:0;">
+                  <div class="panel-header"><div><h3 class="panel-title"><i class="fa-solid fa-chart-bar" style="color:var(--blue);"></i> En Çok Login Deneyen IP Adresleri</h3></div></div>
+                  <div class="panel-body" style="height: 250px; display:flex; justify-content:center; align-items:center;">
+                      <canvas id="ipChart"></canvas>
+                  </div>
+              </div>
+              <div class="panel" style="margin-bottom:0;">
+                  <div class="panel-header"><div><h3 class="panel-title"><i class="fa-solid fa-chart-pie" style="color:var(--purple);"></i> Başarı Oranı</h3></div></div>
+                  <div class="panel-body" style="height: 250px; display:flex; justify-content:center; align-items:center;">
+                      <canvas id="statusChart"></canvas>
+                  </div>
+              </div>
+          </div>
+
+
+
+
+
+          <div class="panel" style="margin-bottom:0;">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title"><i class="fa-solid fa-list-check" style="color:var(--amber);"></i> Kimlik Doğrulama Olay Akışı</h3>
+              </div>
+            </div>
+            <div class="panel-body" style="padding:0;max-height:460px;overflow-y:auto;">
+              <table class="data-table">
+                <thead style="position: sticky; top: 0; z-index: 10;">
+                  <tr>
+                    <th style="width: 15%;">Tarih / Saat</th>
+                    <th style="width: 15%;">Hedef Sunucu</th>
+                    <th style="width: 15%;">Kullanıcı Adı</th>
+                    <th style="width: 20%;">Kaynak IP Adresi</th>
+                    <th style="width: 20%;">Giriş Türü</th>
+                    <th style="width: 15%;">Durum</th>
+                  </tr>
+                </thead>
+                <tbody id="auth-logs-body">
+                  <tr><td colspan="6" class="loading-text"><i class="fa-solid fa-circle-notch fa-spin"></i> Gerçek veriler işleniyor...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+        </div>
+
+        <div id="tab-auditd" class="view-section">
+
+
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
+
+  <div class="panel" style="padding:16px;margin-bottom:0;">
+    <div style="font-size:12px;color:var(--muted);font-weight:800;">MSSQL OLAYI</div>
+    <div id="audit-sql-count" style="font-size:26px;font-weight:900;color:var(--purple);">-</div>
+  </div>
+
+  <div class="panel" style="padding:16px;margin-bottom:0;">
+    <div style="font-size:12px;color:var(--muted);font-weight:800;">TRIGGER DEĞİŞİKLİĞİ</div>
+    <div id="audit-trigger-count" style="font-size:26px;font-weight:900;color:var(--red);">-</div>
+  </div>
+
+  <div class="panel" style="padding:16px;margin-bottom:0;">
+    <div style="font-size:12px;color:var(--muted);font-weight:800;">LINUX YETKİ</div>
+    <div id="audit-linux-count" style="font-size:26px;font-weight:900;color:var(--amber);">-</div>
+  </div>
+
+  <div class="panel" style="padding:16px;margin-bottom:0;">
+    <div style="font-size:12px;color:var(--muted);font-weight:800;">KRİTİK KOMUT</div>
+    <div id="audit-command-count" style="font-size:26px;font-weight:900;color:var(--blue);">-</div>
+  </div>
+
+</div>
+
+
+<div class="panel" style="padding:14px 18px;margin-bottom:24px;border-left:5px solid var(--purple);">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div style="
+      width:34px;
+      height:34px;
+      border-radius:10px;
+      background:var(--purple-soft);
+      color:var(--purple);
+      display:flex;
+      align-items:center;
+      justify-content:center;">
+      <i class="fa-solid fa-database"></i>
+    </div>
+
+    <div>
+      <div style="font-size:13px;font-weight:900;color:var(--text);">
+        Veritabanı & Linux Audit Yorumu
+      </div>
+
+      <div id="audit-risk-comment" style="font-size:13px;color:var(--muted);margin-top:3px;">
+        SQL ve Linux audit olayları analiz ediliyor...
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<div class="panel" style="margin-bottom:24px;">
+  <div class="panel-header">
+    <div>
+      <h3 class="panel-title">
+        <i class="fa-solid fa-chart-column" style="color:var(--purple);"></i>
+        MSSQL / Audit Operasyon Dağılımı
+      </h3>
+      <p class="panel-desc">
+        Gerçek loglardan türetilen SQL ve Linux audit davranış yoğunluğu.
+      </p>
+    </div>
+  </div>
+
+  <div class="panel-body" style="height:240px;">
+    <canvas id="auditOperationChart"></canvas>
+  </div>
+</div>
+
+
+
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title"><i class="fa-solid fa-database" style="color:var(--purple);"></i> Veritabanı ve Linux Yetki Operasyonları</h3>
+                <p class="panel-desc">Gerçek zamanlı MSSQL yapı değişiklikleri, trigger hareketleri, Linux kritik yetki kullanımı ve audit kayıtları.</p>
+              </div>
+            </div>
+            <div class="panel-body" style="padding:0;max-height:420px;overflow-y:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 15%;">Tarih/Saat</th>
+                    <th style="width: 15%;">Sunucu</th>
+                    <th style="width: 15%;">Yetkili Kullanıcı</th>
+                    <th style="width: 55%;">Çalıştırılan SQL/Audit Komutu</th>
+                  </tr>
+                </thead>
+                <tbody id="auditd-tab-tbody">
+                  <tr><td colspan="4" class="loading-text">Komut ve SQL logları filtreleniyor...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <script>
+    function switchTab(tabId, element) {
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      element.classList.add('active');
+
+      document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+
+      const titleEl = document.getElementById('header-title-text');
+      const descEl = document.getElementById('header-desc-text');
+      
+      if(tabId === 'tab-dashboard') {
+        titleEl.innerText = "Merkezi Log ve Davranış Analizi (User Activity)";
+        descEl.innerText = "Windows, Linux ve MSSQL Sistemleri Olay Takibi - GERÇEK ZAMANLI VERİ";
+      } else if(tabId === 'tab-users') {
+        titleEl.innerText = "Kimlik & IP İzleme Merkezi";
+        descEl.innerText = "Ağ üzerindeki şüpheli giriş denemeleri ve başarılı kimlik doğrulamaları";
+      } else if(tabId === 'tab-auditd') {
+        titleEl.innerText = "Veritabanı ve Çekirdek Logları (Auditd)";
+        descEl.innerText = "MSSQL Tablo operasyonları ve Linux yetki aşımı denemeleri";
+      }
+    }
+
+    function formatTime(isoString) {
+      if (!isoString) return "Bilinmiyor";
+      const date = new Date(isoString);
+      return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute:'2-digit', second:'2-digit' });
+    }
+
+    function formatDateFull(isoString) {
+        if (!isoString) return "Bilinmiyor";
+        const date = new Date(isoString);
+        return date.toLocaleDateString('tr-TR') + " " + date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute:'2-digit' });
+    }
+
+    // Renk ve Animasyon Stilleri
+    if (!document.getElementById('soc-styles')) {
+        const style = document.createElement('style');
+        style.id = 'soc-styles';
+        style.innerHTML = `
+            @keyframes pulse-green {
+                0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+                70% { transform: scale(1); box-shadow: 0 0 0 4px rgba(34, 197, 94, 0); }
+                100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+            }
+            .live-indicator { display: inline-block; width: 8px; height: 8px; background-color: var(--green); border-radius: 50%; animation: pulse-green 2s infinite; margin-right: 6px; }
+            .progress-bg { width: 100%; height: 6px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+            .progress-bar { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // 1. DONANIM VE HEALTH API'Sİ
+    async function fetchHardwareData() {
+        try {
+            const response = await fetch('/api/donanim');
+            const hardwareList = await response.json();
+            const container = document.getElementById('hardware-container');
+            container.innerHTML = '';
+            container.style.gridTemplateColumns = 'repeat(auto-fit, minmax(280px, 1fr))';
+
+            if (hardwareList.length === 0) {
+                container.innerHTML = '<div class="loading-text">Kayıtlı ajan bulunamadı.</div>'; return;
+            }
+
+            hardwareList.forEach(hw => {
+                const isWindows = hw.os.toLowerCase().includes('windows');
+                const isManager = hw.id === "000"; 
+                let iconClass = 'fa-brands fa-linux'; let colorVar = 'var(--amber)';
+                if (isWindows) { iconClass = 'fa-brands fa-windows'; colorVar = 'var(--blue)'; }
+                if (isManager) { iconClass = 'fa-solid fa-server'; colorVar = 'var(--purple)'; }
+
+                const statusColor = hw.status === 'active' ? 'var(--green)' : 'var(--red)';
+                
+                if (hw.id === "000" && hw.status === "active") {
+                    lastSeenText = "Şimdi (Local)";
+                } else if (hw.lastKeepAlive && hw.lastKeepAlive !== "Bilinmiyor") {
+                    const lastKeeep = new Date(hw.lastKeepAlive);
+                    const now = new Date();
+                    let diffSec = Math.floor((now - lastKeeep) / 1000);
+                    if (diffSec < 0) diffSec = 0; 
+                    if (diffSec < 60) { lastSeenText = `${diffSec} sn önce`;
+                    } else if (diffSec < 3600) { lastSeenText = `${Math.floor(diffSec / 60)} dk önce`;
+                    } else if (diffSec < 86400) { lastSeenText = `${Math.floor(diffSec / 3600)} saat önce`;
+                    } else { lastSeenText = `${Math.floor(diffSec / 86400)} gün önce`; }
+                }
+
+                const cpuNum = parseFloat((hw.liveCpu || '0').replace('%', '')) || 0;
+                const ramNum = parseFloat((hw.liveRam || '0').replace('%', '')) || 0;
+                const diskNum = parseFloat((hw.liveDisk || '0').replace('%', '')) || 0;
+
+                const getHealthColor = (val) => {
+                    if (val < 50) return 'var(--green)';
+                    if (val < 75) return 'var(--amber)';
+                    return 'var(--red)';
+                };
+
+                container.innerHTML += `
+                <div style="border: 1px solid var(--border); padding: 18px; border-radius: 12px; background: #fff; position:relative; overflow:hidden;">
+                  ${isManager ? '<div style="position:absolute; top:0; left:0; width:4px; height:100%; background:var(--purple);"></div>' : ''}
+                  <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                    <div>
+                        <h4 style="font-size: 15px; font-weight: 800; margin: 0; color: var(--text); display:flex; align-items:center;">
+                            <i class="${iconClass}" style="color:${colorVar}; margin-right:8px; font-size:18px;"></i>
+                            ${hw.name} 
+                            ${isManager ? '<span style="margin-left:8px; font-size:9px; background:var(--purple); color:#fff; padding:1px 5px; border-radius:4px;">MANAGEMENT</span>' : ''}
+                        </h4>
+                        <div style="font-size: 11px; color: var(--muted); margin-top:4px; font-weight:600;">
+                           <i class="fa-solid fa-network-wired"></i> ${hw.ip} <span style="margin:0 4px;">•</span> v${hw.id}
+                        </div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px;">
+                            <span class="live-indicator" style="margin:0; background:${statusColor};"></span>
+                            <span style="color:${statusColor}; font-size: 10px; font-weight: 800; letter-spacing:0.5px;">${hw.status.toUpperCase()}</span>
+                        </div>
+                        <div style="font-size: 10px; color: var(--muted); margin-top: 4px; font-weight:700;">${lastSeenText}</div>
+                    </div>
+                  </div>
+                  <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom:15px; background:#f8fafc; padding:10px; border-radius:8px;">
+                      <div style="text-align:center;">
+                          <div style="font-size:9px; font-weight:800; color:var(--muted); margin-bottom:4px;">CPU</div>
+                          <div style="font-size:13px; font-weight:900; color:${getHealthColor(cpuNum)};">${cpuNum}%</div>
+                          <div style="width:100%; height:4px; background:#e2e8f0; border-radius:2px; margin-top:4px;"><div style="width:${cpuNum}%; height:100%; background:${getHealthColor(cpuNum)}; border-radius:2px;"></div></div>
+                      </div>
+                      <div style="text-align:center; border-left:1px solid #e2e8f0; border-right:1px solid #e2e8f0;">
+                          <div style="font-size:9px; font-weight:800; color:var(--muted); margin-bottom:4px;">RAM</div>
+                          <div style="font-size:13px; font-weight:900; color:${getHealthColor(ramNum)};">${ramNum}%</div>
+                          <div style="width:100%; height:4px; background:#e2e8f0; border-radius:2px; margin-top:4px;"><div style="width:${ramNum}%; height:100%; background:${getHealthColor(ramNum)}; border-radius:2px;"></div></div>
+                      </div>
+                      <div style="text-align:center;">
+                          <div style="font-size:9px; font-weight:800; color:var(--muted); margin-bottom:4px;">DISK</div>
+                          <div style="font-size:13px; font-weight:900; color:${getHealthColor(diskNum)};">${diskNum}%</div>
+                          <div style="width:100%; height:4px; background:#e2e8f0; border-radius:2px; margin-top:4px;"><div style="width:${diskNum}%; height:100%; background:${getHealthColor(diskNum)}; border-radius:2px;"></div></div>
+                      </div>
+                  </div>
+                  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                      <div style="background:#fff5f5; border:1px solid #fed7d7; padding:8px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                          <span style="font-size:10px; font-weight:700; color:#c53030;">KRİTİK OLAY</span>
+                          <span style="font-size:14px; font-weight:900; color:#c53030;">${hw.criticalCount}</span>
+                      </div>
+                      <div style="background:#fffaf0; border:1px solid #feebc8; padding:8px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                          <span style="font-size:10px; font-weight:700; color:#9c4221;">F. LOGIN</span>
+                          <span style="font-size:14px; font-weight:900; color:#9c4221;">${hw.failedLoginCount}</span>
+                      </div>
+                  </div>
+                </div>`;
+            });
+        } catch (error) {}
+    }
+
+    // Grafik nesnelerini hafızada tutalım ki üst üste binmesinler
+    let ipChartInstance = null;
+    let statusChartInstance = null;
+
+    let socCategoryChartInstance=null;
+    let socServerChartInstance=null;
+    let auditOperationChartInstance=null;
+
+    // 2. KİMLİK VE IP İZLEME (SAF VERİ, YENİ KEY EŞLEMESİ VE EKSİKSİZ GRAFİKLER)
+    async function fetchAuthLogs() {
+        try {
+            const response = await fetch('/api/kimlik-loglari');
+            const logs = await response.json();
+            const tbody = document.getElementById('auth-logs-body');
+            tbody.innerHTML = '';
+
+            if (logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="loading-text">Veri alınamadı. İşletim sistemi giriş kaydı yok.</td></tr>';
+                return;
+            }
+
+            // --- 1. MATEMATİKSEL HESAPLAMALAR VE KPI'LAR ---
+            let basarisizSayisi = 0;
+            let ipListesi = {};
+            let ipBasarisizListesi = {};
+
+            logs.forEach(log => {
+                if (log.sourceIp !== "N/A") {
+                    ipListesi[log.sourceIp] = (ipListesi[log.sourceIp] || 0) + 1;
+                    if (log.status === "Başarısız") {
+                        ipBasarisizListesi[log.sourceIp] = (ipBasarisizListesi[log.sourceIp] || 0) + 1;
+                    }
+                }
+                if (log.status === "Başarısız") basarisizSayisi++;
+            });
+
+            const benzersizIpSayisi = Object.keys(ipListesi).length;
+            const supheliIplerDizisi = Object.keys(ipBasarisizListesi).filter(ip => ipBasarisizListesi[ip] >= 3);
+            const supheliIpSayisi = supheliIplerDizisi.length;
+            const supheliIplerMetni = supheliIpSayisi > 0 ? supheliIplerDizisi.join('<br>') : 'Tehdit Yok';
+
+            // KPI'ları Ekrana Yazdır
+            document.getElementById('kpi-total').innerText = logs.length;
+            document.getElementById('kpi-failed').innerText = basarisizSayisi;
+            document.getElementById('kpi-unique-ip').innerText = benzersizIpSayisi;
+            document.getElementById('kpi-suspicious').innerHTML = `${supheliIpSayisi} <div style="font-size:10px; color:var(--red); margin-top:4px; font-weight:700; line-height:1.2;">${supheliIplerMetni}</div>`;
+
+
+let kimlikDurumu = "Normal";
+let kimlikRenk = "var(--green)";
+
+if (basarisizSayisi > 10 || supheliIpSayisi > 2) {
+
+    kimlikDurumu = "Yüksek Risk";
+    kimlikRenk = "var(--red)";
+
+}
+else if (basarisizSayisi > 5 || supheliIpSayisi > 0) {
+
+    kimlikDurumu = "İzleme Gerekli";
+    kimlikRenk = "var(--amber)";
+
+}
+
+document.getElementById("identity-risk-comment").innerHTML = `
+
+Son 7 günlük gerçek loglara göre
+
+<strong style="color:${kimlikRenk}">
+${kimlikDurumu}
+</strong>
+
+kimlik davranışı tespit edilmiştir.
+
+<br><br>
+
+<strong>${logs.length}</strong> giriş olayı,
+
+<strong style="color:var(--red)">
+${basarisizSayisi}
+</strong>
+
+başarısız giriş,
+
+<strong>${benzersizIpSayisi}</strong>
+
+farklı IP kaynağı gözlemlenmiştir.
+
+`;
+
+
+            // --- 2. GRAFİKLERİ ÇİZME (CHART.JS) ---
+            const siraliIPler = Object.entries(ipListesi)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+
+            const ipEtiketleri = siraliIPler.map(item => item[0]);
+            const ipVerileri = siraliIPler.map(item => item[1]);
+
+            if(ipChartInstance) ipChartInstance.destroy();
+            const ctxIP = document.getElementById('ipChart').getContext('2d');
+            ipChartInstance = new Chart(ctxIP, {
+                type: 'bar',
+                data: {
+                    labels: ipEtiketleri.length > 0 ? ipEtiketleri : ['N/A'],
+                    datasets: [{
+                        label: 'Giriş Denemesi',
+                        data: ipVerileri.length > 0 ? ipVerileri : [0],
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 4
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+
+            if(statusChartInstance) statusChartInstance.destroy();
+            const ctxStatus = document.getElementById('statusChart').getContext('2d');
+            statusChartInstance = new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Başarılı', 'Başarısız'],
+                    datasets: [{
+                        data: [logs.length - basarisizSayisi, basarisizSayisi],
+                        backgroundColor: ['#22c55e', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom' } } }
+            });
+
+            // --- 3. DETAY TABLOSUNU DOLDURMA ---
+            logs.forEach(log => {
+                let formattedDate = "N/A";
+
+try {
+    const safeTimestamp = (log.timestamp || "")
+        .replace(/\+0000$/, "Z");
+
+    const dateObj = new Date(safeTimestamp);
+
+    formattedDate = isNaN(dateObj)
+        ? log.timestamp
+        : dateObj.toLocaleString('tr-TR', {
+            day:'2-digit',
+            month:'2-digit',
+            year:'numeric',
+            hour:'2-digit',
+            minute:'2-digit',
+            second:'2-digit'
+        });
+
+} catch(e){
+    formattedDate = log.timestamp || "N/A";
+}
+
+                const statusBadge = log.status === 'Başarılı' 
+                    ? '<span class="badge" style="background:var(--green-soft); color:var(--green);"><i class="fa-solid fa-check"></i> BAŞARILI</span>'
+                    : '<span class="badge" style="background:var(--red-soft); color:var(--red);"><i class="fa-solid fa-xmark"></i> BAŞARISIZ</span>';
+                
+                const serverIcon = (log.targetHost || "").toLowerCase().includes('windows') ? 'fa-brands fa-windows' : 'fa-brands fa-linux';
+                const serverColor = (log.targetHost || "").toLowerCase().includes('windows') ? 'var(--blue)' : 'var(--amber)';
+
+
+const loginTypeMap = {
+    "Windows Logon": "Windows Başarılı Giriş",
+    "Failed Windows Logon": "Windows Başarısız Giriş",
+    "Linux Console Login": "Linux Başarılı Giriş",
+    "Failed Linux Console Login": "Linux Başarısız Giriş"
+};
+
+const temizLoginType = loginTypeMap[log.loginType] || log.loginType;
+
+
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="font-weight: 600; color: var(--muted);">${formattedDate}</td>
+                        <td style="font-weight: 700;"><i class="${serverIcon}" style="color:${serverColor}; margin-right:6px;"></i>${log.targetHost}</td>
+                        <td style="font-weight: 900; color: var(--text);"><i class="fa-solid fa-user-shield" style="margin-right:4px; color:var(--purple);"></i> ${log.username}</td>
+                        <td style="font-family: monospace; font-size: 13px; font-weight:800; color: var(--text);">${log.sourceIp}</td>
+                        <td style="color: var(--muted); font-weight: 700;">${temizLoginType}</td>
+                        <td>${statusBadge}</td>
+                    </tr>
+                `;
+            });
+        } catch (error) {
+            console.error("Kimlik logları alınamadı:", error);
+        }
+    }
+
+    // 3. BAŞARISIZ LOGİNLER (WIDGET İÇİN)
+    async function fetchFailedLogins() {
+        try {
+            const response = await fetch('/api/loglar/basarisiz-login');
+            const loglar = await response.json();
+            const tbody = document.getElementById('failed-logins-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if(loglar.length === 0) { tbody.innerHTML = '<tr><td colspan="3" class="loading-text">Kayıt bulunamadı.</td></tr>'; return; }
+            loglar.forEach(log => {
+                
+
+const temizIp =
+    log.kaynak_ip === "127.0.0.1" || log.kaynak_ip === "127.0.0.1 (Lokal)"
+        ? "Yerel Sistem"
+        : log.kaynak_ip;
+
+const temizHesap =
+    !log.denenen_hesap || log.denenen_hesap === "Bilinmiyor"
+        ? "Tanımlı Olmayan Hesap"
+        : log.denenen_hesap;
+
+tbody.innerHTML += `
+<tr>
+  <td style="font-weight:700;">${formatTime(log.tarih)}</td>
+
+  <td>
+    <span style="
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-weight:900;
+      color:${temizIp === "Yerel Sistem" ? "var(--amber)" : "var(--red)"};
+    ">
+      <i class="fa-solid fa-network-wired"></i>
+      ${temizIp}
+    </span>
+  </td>
+
+  <td>
+    <span style="
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-weight:800;
+      color:var(--text);
+    ">
+      <i class="fa-solid fa-user-lock" style="color:var(--muted)"></i>
+      ${temizHesap}
+    </span>
+  </td>
+</tr>`;
+
+              
+            });
+        } catch (error) {}
+    }
+
+    // 4. AI AKTİVİTELERİ (SADECE ANA EKRAN VE AUDITD İÇİN TEMİZLENDİ)
+    async function fetchAiActivities() {
+        try {
+            const response = await fetch('/api/loglar/kullanici-aktiviteleri');
+            const loglar = await response.json();
+            updateSocSummary(loglar);
+            renderSocCharts(loglar);
+            renderAuditOperationChart(loglar);
+            
+            const mainTbody = document.getElementById('ai-activities-tbody');
+            const auditdTbody = document.getElementById('auditd-tab-tbody');
+
+            mainTbody.innerHTML = '';
+            auditdTbody.innerHTML = '';
+
+            let hasAuditdLog = false;
+
+            if(loglar.length === 0) {
+                mainTbody.innerHTML = '<tr><td colspan="4" class="loading-text">Kritik olay bulunamadı.</td></tr>';
+                auditdTbody.innerHTML = '<tr><td colspan="4" class="loading-text">Komut veya SQL logu bulunamadı.</td></tr>';
+                return;
+            }
+
+
+if (document.getElementById("audit-sql-count")) {
+   const sqlCount =
+loglar.filter(l =>
+["100007","100012","100020","100021","100022"]
+.includes(l.kural_id)
+).length;
+
+const triggerCount =
+loglar.filter(l =>
+l.kural_id==="100022"
+).length;
+
+const linuxAuditCount =
+loglar.filter(l =>
+["100003","100009","100011"]
+.includes(l.kural_id)
+).length;
+
+
+document.getElementById("audit-sql-count").innerText =
+sqlCount;
+
+document.getElementById("audit-trigger-count").innerText =
+triggerCount;
+
+document.getElementById("audit-linux-count").innerText =
+linuxAuditCount;
+
+    document.getElementById("audit-command-count").innerText =
+    loglar.filter(l =>
+        l.calistirilan_komut &&
+        l.calistirilan_komut !== "Kullanıcı / sistem davranışı analiz edildi"
+    ).length;
+
+
+
+if (document.getElementById("audit-risk-comment")) {
+    
+
+    document.getElementById("audit-risk-comment").innerHTML = `
+    Son 7 günlük gerçek loglara göre
+    <strong>${sqlCount}</strong> MSSQL olayı,
+    <strong style="color:var(--red);">${triggerCount}</strong> trigger değişikliği
+    ve <strong>${linuxAuditCount}</strong> Linux kritik yetki/dosya olayı izlenmiştir.
+    `;
+}
+
+
+}
+
+
+
+            
+            loglar.forEach(log => {
+                
+
+const riskBadge = ["100019","100022","100021","100012","100010","100005"].includes(log.kural_id)
+    ? '<span class="badge badge-red">KRİTİK</span>'
+    : ["100002","100006","100009","100014","100015","100016"].includes(log.kural_id)
+        ? '<span class="badge badge-amber">YÜKSEK</span>'
+        : '<span class="badge badge-blue">İZLEME</span>';
+
+const categoryMap = {
+    "100004": ["Kimlik", "var(--blue)"],
+    "100006": ["Kimlik", "var(--amber)"],
+    "100017": ["Oturum", "var(--blue)"],
+    "100020": ["MSSQL", "var(--blue)"],
+    "100021": ["MSSQL", "var(--red)"],
+
+    "100002": ["Yetki", "var(--purple)"],
+    "100009": ["Yetki", "var(--purple)"],
+    "100015": ["Kalıcılık", "var(--amber)"],
+
+    "100005": ["Savunma İhlali", "var(--red)"],
+    "100010": ["Savunma İhlali", "var(--red)"],
+    "100014": ["Savunma İhlali", "var(--red)"],
+    "100016": ["Savunma İhlali", "var(--red)"],
+
+    "100003": ["Hassas Dosya", "var(--red)"],
+    "100011": ["Konfigürasyon", "var(--amber)"],
+    "100012": ["Veritabanı", "var(--red)"],
+    "100019": ["Veri Güvenliği", "var(--red)"],
+    "100022": ["Veritabanı", "var(--red)"],
+    "100007": ["Veritabanı", "var(--amber)"],
+    "100008": ["Keşif", "var(--blue)"]
+};
+
+const [categoryName, categoryColor] = categoryMap[log.kural_id] || ["Genel", "var(--muted)"];
+
+const categoryBadge = `
+    <span style="
+        display:inline-block;
+        margin-top:6px;
+        padding:4px 8px;
+        border-radius:999px;
+        font-size:10px;
+        font-weight:900;
+        color:white;
+        background:${categoryColor};
+    ">
+        ${categoryName}
+    </span>
+`;
+
+
+const socActionMap = {
+    "100002": "Kullanıcı hesabı veya yönetici grup üyeliği değişti. Yetki kötüye kullanımı açısından incelenmeli.",
+    "100003": "Linux üzerinde hassas sistem dosyasına erişim tespit edildi. Veri sızıntısı riski taşıyabilir.",
+    "100004": "Aynı kullanıcı için beklenmeyen ağ/IP davranışı görüldü. Kimlik güvenliği açısından izlenmeli.",
+    "100005": "Shadow Copy silme davranışı fidye yazılımı hazırlığına işaret edebilir.",
+    "100006": "Birden fazla başarısız girişten sonra başarılı oturum oluştu. Brute force sonrası erişim ihtimali var.",
+    "100007": "SQL Server konfigürasyonunda kritik değişiklik yapıldı. Denetim ve yetki kontrolü gerektirir.",
+    "100008": "Sistem keşif aracı çalıştırıldı. Bu olay saldırı zincirinin keşif aşamasına işaret edebilir.",
+    "100009": "Linux üzerinde root yetkisi kazanıldı. Komut geçmişi ve oturum sahibi incelenmeli.",
+    "100010": "Güvenlik veya log servisi durdu. Savunma atlatma girişimi olabilir.",
+    "100011": "SSH yapılandırmasına müdahale edildi. Kalıcılık veya yetkisiz erişim riski oluşturabilir.",
+    "100012": "Veritabanında tablo silme davranışı tespit edildi. Veri kaybı ve sabotaj riski yüksektir.",
+    "100014": "Windows Security logları temizlendi. İz silme girişimi olarak değerlendirilmelidir.",
+    "100015": "Yeni zamanlanmış görev oluşturuldu. Kalıcılık veya otomatik çalıştırma riski incelenmeli.",
+    "100016": "Audit politikası değiştirildi. Güvenlik görünürlüğünü azaltma girişimi olabilir.",
+    "100017": "Windows oturumu kapandı. Kullanıcı aktivite zincirinde kapanış olayı olarak kaydedildi.",
+    "100019": "Kısa süre içinde birden fazla dosya silindi. Toplu veri silme veya iç tehdit riski taşıyabilir.",
+    "100020": "MSSQL üzerinde başarılı oturum açıldı. Veritabanı erişim takibi kapsamında kaydedildi.",
+    "100021": "MSSQL başarısız giriş denemesi tespit edildi. Yetkisiz erişim denemesi olabilir.",
+    "100022": "MSSQL trigger değişikliği tespit edildi. Veritabanı davranışına müdahale riski taşır."
+};
+
+const socComment = socActionMap[log.kural_id] || log.ai_cevirisi;
+
+
+
+
+                mainTbody.innerHTML += `
+               <tr>
+    <td>
+        <strong>${formatDateFull(log.zaman)}</strong><br>
+        <span style="font-size:11px;color:var(--muted);">Rule ${log.kural_id}</span>
+    </td>
+
+    <td>
+    <div style="display:flex;align-items:center;gap:8px;">
+        <div style="
+            width:30px;
+            height:30px;
+            border-radius:50%;
+            background:var(--blue-soft);
+            color:var(--blue);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:13px;
+        ">
+            <i class="fa-solid fa-user-shield"></i>
+        </div>
+        <div>
+            <strong style="display:block;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                ${log.kullanici}
+            </strong>
+            ${riskBadge}
+        </div>
+    </div>
+</td>
+
+    <td>
+        <span style="font-family:monospace;font-weight:800;">${log.kaynak_ip}</span><br>
+        <span style="font-size:11px;color:var(--muted);">${log.hedef_sunucu}</span>
+    </td>
+
+    <td>
+        <strong>${log.olay_tipi}</strong><br>
+${categoryBadge}<br>
+<span style="
+font-size:11px;
+color:var(--muted);
+display:inline-block;
+max-width:220px;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+">
+${log.calistirilan_komut}
+</span>
+    </td>
+
+    <td>
+<div style="
+background:#f8fafc;
+border-left:4px solid var(--blue);
+padding:10px;
+border-radius:8px;
+font-size:13px;
+line-height:1.5;
+max-width:420px;
+">
+
+<div style="
+font-size:11px;
+font-weight:900;
+color:var(--blue);
+margin-bottom:6px;
+text-transform:uppercase;
+">
+
+SOC ANALİST YORUMU
+
+</div>
+
+<div style="color:#334155;">
+${socComment}
+</div>
+
+</div>
+</td>
+</tr>`;
+                
+                ;
+
+                // B) Sadece gerçek teknik Audit / SQL olaylarını göster
+const teknikAuditMi =
+    log.calistirilan_komut &&
+    log.calistirilan_komut !== "Komut Yok (Sistem Erişimi)" &&
+    log.calistirilan_komut !== "Kullanıcı / sistem davranışı analiz edildi" &&
+    [
+        "100003",
+        "100007",
+        "100008",
+        "100009",
+        "100011",
+        "100012",
+        "100020",
+        "100021",
+        "100022"
+    ].includes(log.kural_id);
+
+if (teknikAuditMi) {
+
+    hasAuditdLog = true;
+
+    auditdTbody.innerHTML += `
+    <tr>
+        <td>${formatDateFull(log.zaman)}</td>
+
+        <td>
+            <span class="badge badge-blue">
+                ${log.hedef_sunucu}
+            </span>
+        </td>
+
+        <td>
+            <i class="fa-solid fa-user-ninja"
+            style="color:var(--purple)"></i>
+
+            ${log.kullanici || "Sistem Servisi"}
+        </td>
+
+        <td style="
+            font-family:monospace;
+            font-size:14px;
+            background:#f8fafc;
+            padding:12px;
+            border-radius:4px;
+            color:#1e293b;
+            font-weight:bold;">
+
+            >_ ${log.calistirilan_komut}
+
+        </td>
+    </tr>`;
+}
+            });
+
+            if(!hasAuditdLog) auditdTbody.innerHTML = '<tr><td colspan="4" class="loading-text">Şu an için çalıştırılan bir Audit/SQL komutu yok.</td></tr>';
+        } catch (error) {}
+    }
+
+
+function updateSocSummary(loglar) {
+    const criticalRules = ["100002","100005","100006","100009","100010","100012","100014","100015","100016","100019","100021","100022"];
+    const identityRules = ["100004","100006","100017","100020","100021"];
+    const privilegeRules = ["100002","100009","100015"];
+    const dataRules = ["100003","100007","100011","100012","100019","100020","100021","100022"];
+
+    const criticalCount = loglar.filter(l => criticalRules.includes(l.kural_id)).length;
+    const identityCount = loglar.filter(l => identityRules.includes(l.kural_id)).length;
+    const privilegeCount = loglar.filter(l => privilegeRules.includes(l.kural_id)).length;
+    const dataCount = loglar.filter(l => dataRules.includes(l.kural_id)).length;
+
+    const son24Saat = Date.now() - (24 * 60 * 60 * 1000);
+
+const recentCritical = loglar.filter(l =>
+    criticalRules.includes(l.kural_id) &&
+    new Date(l.zaman).getTime() > son24Saat
+).length;
+
+    document.getElementById("soc-critical-count").innerHTML =
+`${criticalCount}<div style="
+font-size:11px;
+margin-top:4px;
+color:var(--muted)">
+Son 7 günlük kritik olay
+</div>`;
+
+document.getElementById("critical-trend").innerHTML =
+`↑ Son 24 saatte +${recentCritical}`;
+
+document.getElementById("soc-identity-count").innerHTML =
+`${identityCount}<div style="
+font-size:11px;
+margin-top:4px;
+color:var(--muted)">
+Kimlik davranışı analizi
+</div>`;
+
+document.getElementById("soc-privilege-count").innerHTML =
+`${privilegeCount}<div style="
+font-size:11px;
+margin-top:4px;
+color:var(--muted)">
+Yetki değişimleri
+</div>`;
+
+document.getElementById("soc-data-count").innerHTML =
+`${dataCount}<div style="
+font-size:11px;
+margin-top:4px;
+color:var(--muted)">
+Veri ve MSSQL olayları
+</div>`;
+
+   const lastCritical = loglar.find(l => criticalRules.includes(l.kural_id));
+
+document.getElementById("soc-last-action").innerHTML = lastCritical
+    ? `
+      <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+        <span style="
+          width:10px;
+          height:10px;
+          min-width:10px;
+          border-radius:50%;
+          background:var(--red);
+          display:inline-block;
+        "></span>
+
+        <div style="min-width:0;">
+          <div style="font-size:13px;font-weight:900;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${lastCritical.olay_tipi}
+          </div>
+
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${lastCritical.kullanici} • ${lastCritical.hedef_sunucu}
+          </div>
+        </div>
+      </div>
+    `
+    : `
+      <div style="font-size:13px;font-weight:900;color:var(--green);">
+        Kritik olay yok
+      </div>
+    `;
+
+
+const toplamRisk =
+criticalCount +
+(identityCount * 2) +
+(privilegeCount * 3) +
+(dataCount * 2);
+
+let socDurum = "Normal";
+let socRenk = "#16a34a";
+
+if(toplamRisk > 40){
+
+    socDurum = "Yüksek Risk";
+    socRenk = "#dc2626";
+
+}
+else if(toplamRisk > 20){
+
+    socDurum = "İzleme Gerekli";
+    socRenk = "#f59e0b";
+
+}
+
+document.getElementById("soc-live-time").innerHTML = `
+
+<span style="
+display:flex;
+align-items:center;
+gap:8px;
+font-weight:900;
+color:${socRenk};
+">
+
+<span style="
+width:10px;
+height:10px;
+border-radius:50%;
+background:${socRenk};
+display:inline-block;
+"></span>
+
+${socDurum}
+
+</span>
+
+<div style="
+font-size:11px;
+margin-top:4px;
+color:var(--muted);
+">
+
+${new Date().toLocaleString("tr-TR")}
+
+</div>
+`;
+
+
+const serverCountsForRisk = {};
+
+loglar.forEach(log => {
+    const server = log.hedef_sunucu || "Tanımsız";
+    serverCountsForRisk[server] = (serverCountsForRisk[server] || 0) + 1;
+});
+
+const topRiskServer = Object.entries(serverCountsForRisk)
+    .sort((a,b) => b[1] - a[1])[0];
+
+document.getElementById("executive-risk-comment").innerHTML = `
+Sistem genelinde <strong style="color:${socRenk};">${socDurum}</strong> seviyesi gözlemlenmektedir.
+En yoğun olaylar <strong>${topRiskServer ? topRiskServer[0] : "tanımsız sunucu"}</strong> üzerinde toplanmıştır.
+Kimlik, yetki ve veritabanı davranışları merkezi olarak izlenmektedir.
+`;
+
+
+
+
+
+const timelineRules = [
+    "100002","100005","100006","100009","100010",
+    "100012","100014","100015","100016","100019",
+    "100021","100022"
+];
+
+const timelineLogs = loglar
+    .filter(log => timelineRules.includes(log.kural_id))
+    .slice(0,5);
+
+const timelineContainer = document.getElementById("critical-timeline");
+
+if(timelineLogs.length === 0){
+
+    timelineContainer.innerHTML = `
+      <div style="font-size:13px;color:var(--green);font-weight:800;">
+        Kritik olay bulunmadı.
+      </div>
+    `;
+
+} else {
+
+    timelineContainer.innerHTML = timelineLogs.map(log => `
+      <div style="
+        display:flex;
+        gap:12px;
+        padding:12px 0;
+        border-bottom:1px solid var(--border);
+      ">
+        <div style="
+          width:10px;
+          height:10px;
+          border-radius:50%;
+          background:var(--red);
+          margin-top:6px;
+          flex-shrink:0;
+        "></div>
+
+        <div style="flex:1;">
+          <div style="display:flex;justify-content:space-between;gap:12px;">
+            <strong style="font-size:13px;color:var(--text);">
+              ${log.olay_tipi}
+            </strong>
+
+            <span style="font-size:11px;color:var(--muted);white-space:nowrap;">
+              ${formatDateFull(log.zaman)}
+            </span>
+          </div>
+
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+            ${log.kullanici} kullanıcısı • ${log.hedef_sunucu} • ${log.kaynak_ip}
+          </div>
+        </div>
+      </div>
+    `).join("");
+
+}
+
+
+
+}
+
+
+
+
+
+
+
+    async function initDashboard() {
+        await fetchHardwareData();
+        await fetchFailedLogins();
+        await fetchAiActivities();
+        await fetchAuthLogs(); // YENİ API'Yİ ÇALIŞTIR
+        
+        document.getElementById('db-status-icon').className = "fa-solid fa-database";
+        document.getElementById('db-status-icon').style.color = "var(--green)";
+        document.getElementById('db-status-text').innerHTML = "Elasticsearch Bağlantısı Aktif!";
+    }
+
+    initDashboard();
+    
+    setInterval(() => {
+        fetchHardwareData();
+        fetchFailedLogins();
+        fetchAiActivities();
+        fetchAuthLogs(); // YENİ API'Yİ GÜNCELLE
+    }, 15000);
+
+
+
+
+
+
+
+function renderSocCharts(loglar){
+
+const categoryRules={
+
+"Kimlik":["100004","100006","100017"],
+
+"Yetki":["100002","100009","100015"],
+
+"Savunma":["100005","100010","100014","100016"],
+
+"Veri/MSSQL":["100003","100007","100011","100012","100019","100020","100021","100022"],
+
+"Keşif":["100008"]
+
+};
+
+
+const categoryCounts=Object.keys(categoryRules).map(category=>{
+
+return loglar.filter(log=>
+
+categoryRules[category].includes(log.kural_id)
+
+).length;
+
+});
+
+
+
+const serverCounts={};
+
+loglar.forEach(log=>{
+
+const server=log.hedef_sunucu || "Tanımsız";
+
+serverCounts[server]=(serverCounts[server]||0)+1;
+
+});
+
+
+
+const topServers=Object.entries(serverCounts)
+
+.sort((a,b)=>b[1]-a[1])
+
+.slice(0,5);
+
+
+
+if(socCategoryChartInstance){
+
+socCategoryChartInstance.destroy();
+
+}
+
+const ctx1=document
+
+.getElementById("socCategoryChart")
+
+.getContext("2d");
+
+
+socCategoryChartInstance=new Chart(ctx1,{
+
+type:"doughnut",
+
+data:{
+
+labels:Object.keys(categoryRules),
+
+datasets:[{
+
+data:categoryCounts,
+
+backgroundColor:[
+
+"#3b82f6",
+
+"#f59e0b",
+
+"#8b5cf6",
+
+"#ef4444",
+
+"#14b8a6"
+
+],
+
+borderWidth:0
+
+}]
+
+},
+
+options:{
+
+responsive:true,
+
+maintainAspectRatio:false,
+
+plugins:{
+
+legend:{
+
+position:"bottom"
+
+}
+
+},
+
+cutout:"65%"
+
+}
+
+});
+
+
+
+if(socServerChartInstance){
+
+socServerChartInstance.destroy();
+
+}
+
+
+const ctx2=document
+
+.getElementById("socServerChart")
+
+.getContext("2d");
+
+
+socServerChartInstance=new Chart(ctx2,{
+
+type:"bar",
+
+data:{
+
+labels:topServers.map(x=>x[0]),
+
+datasets:[{
+
+label:"Olay",
+
+data:topServers.map(x=>x[1]),
+
+borderRadius:6
+
+}]
+
+},
+
+options:{
+
+responsive:true,
+
+maintainAspectRatio:false,
+
+plugins:{
+
+legend:{
+
+display:false
+
+}
+
+}
+
+}
+
+});
+
+}
+
+
+function renderAuditOperationChart(loglar){
+
+const auditGroups={
+"SQL Login":["100020","100021"],
+"Trigger":["100022"],
+"SQL Yapı":["100007","100012"],
+"Linux Yetki":["100003","100009","100011"],
+"Keşif":["100008"]
+};
+
+const labels=Object.keys(auditGroups);
+
+const values=labels.map(label=>
+loglar.filter(log=>auditGroups[label].includes(log.kural_id)).length
+);
+
+if(auditOperationChartInstance){
+auditOperationChartInstance.destroy();
+}
+
+const canvas=document.getElementById("auditOperationChart");
+
+if(!canvas) return;
+
+const ctx=canvas.getContext("2d");
+
+auditOperationChartInstance=new Chart(ctx,{
+type:"bar",
+data:{
+labels:labels,
+datasets:[{
+label:"Olay Sayısı",
+data:values,
+borderRadius:8,
+
+backgroundColor:[
+"#3b82f6",
+"#ef4444",
+"#8b5cf6",
+"#f59e0b",
+"#10b981"
+]
+}]
+},
+options:{
+responsive:true,
+maintainAspectRatio:false,
+plugins:{
+legend:{display:false}
+},
+scales:{
+y:{
+beginAtZero:true,
+ticks:{precision:0}
+}
+}
+}
+});
+
+}
+
+
+function toggleExecutiveMode(){
+  document.body.classList.toggle("executive-mode");
+}
+
+
+  </script>
+</body>
+</html>

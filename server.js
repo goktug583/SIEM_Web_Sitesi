@@ -194,13 +194,7 @@ app.get('/api/donanim', async (req, res) => {
 }
 });
 
-// ============================================================================
-// ============================================================================
-// ============================================================================
-// 1. KİMLİK VE IP İZLEME (SAF HAM GİRİŞLER: WINDOWS + LINUX FAILED + LINUX SUCCESS)
-// ============================================================================
-// 1. KİMLİK VE IP İZLEME (SAF HAM GİRİŞLER: WINDOWS + LINUX FAILED + LINUX SUCCESS)
-// ============================================================================
+
 app.get('/api/kimlik-loglari', async (req, res) => {
     const token = await getWazuhToken();
     if (!token) return res.status(500).json({ hata: "Token alınamadı!" });
@@ -270,11 +264,27 @@ const linuxSuccessQuery = {
     size: 25
 };
 
-        const [windowsResponse, linuxFailedResponse, linuxSuccessResponse] = await Promise.all([
-            axiosInstance.post(`${process.env.WAZUH_INDEXER_URL}/wazuh-alerts-*/_search`, windowsBaseQuery, authOptions),
-            axiosInstance.post(`${process.env.WAZUH_INDEXER_URL}/wazuh-alerts-*/_search`, linuxFailedQuery, authOptions),
-            axiosInstance.post(`${process.env.WAZUH_INDEXER_URL}/wazuh-alerts-*/_search`, linuxSuccessQuery, authOptions)
-        ]);
+
+
+const customIdentityQuery = {
+    query: {
+        bool: {
+            must: [
+                { range: { timestamp: { gte: "now-7d" } } },
+                { terms: { "rule.id": ["100004", "100006", "100020", "100021"] } }
+            ]
+        }
+    },
+    sort: [{ timestamp: { order: "desc" } }],
+    size: 50
+};
+        const [windowsResponse, linuxFailedResponse, linuxSuccessResponse, customIdentityResponse] = await Promise.all([
+    axiosInstance.post(`${process.env.WAZUH_INDEXER_URL}/wazuh-alerts-*/_search`, windowsBaseQuery, authOptions),
+    axiosInstance.post(`${process.env.WAZUH_INDEXER_URL}/wazuh-alerts-*/_search`, linuxFailedQuery, authOptions),
+    axiosInstance.post(`${process.env.WAZUH_INDEXER_URL}/wazuh-alerts-*/_search`, linuxSuccessQuery, authOptions),
+    axiosInstance.post(`${process.env.WAZUH_INDEXER_URL}/wazuh-alerts-*/_search`, customIdentityQuery, authOptions)
+]);
+const rawCustomIdentityLogs = customIdentityResponse.data.hits.hits || [];
 
         const rawWindowsLogs = windowsResponse.data.hits.hits || [];
         const rawLinuxFailedLogs = linuxFailedResponse.data.hits.hits || [];
@@ -282,34 +292,93 @@ const linuxSuccessQuery = {
         
         
 
-        const combinedRawLogs = [...rawWindowsLogs, ...rawLinuxFailedLogs, ...rawLinuxSuccessLogs];
+        const combinedRawLogs = [...rawWindowsLogs, ...rawLinuxFailedLogs, ...rawLinuxSuccessLogs, ...rawCustomIdentityLogs];
 
         // === 4. MAPPING ===
-        const mappedLogs = combinedRawLogs.map(hit => {
-            const src = hit._source || {};
-            const agentName = src.agent?.name || "N/A";
-            
-            let ruleId = String(src.rule?.id || "N/A");
-            let eventId = String(src.data?.win?.system?.eventID || src.data?.win?.system?.eventId || src.data?.win?.system?.EventID || "N/A");
+const mappedLogs = combinedRawLogs.map(hit => {
 
-            let username = "N/A";
-            let sourceIp = "N/A";
-            let loginType = "N/A";
-            let status = "Başarılı";
+    const src = hit._source || {};
+    const data = src.data || {};
+    const agentName = src.agent?.name || "N/A";
 
-            // WINDOWS MAPPING
-            if (eventId === "4624" || eventId === "4625") {
-                username = src.data?.win?.eventdata?.targetUserName || src.data?.win?.eventdata?.TargetUserName || "N/A";
-                sourceIp = src.data?.win?.eventdata?.ipAddress || src.data?.win?.eventdata?.IpAddress || "N/A";
-                
-                if (eventId === "4624") {
-                    loginType = "Windows Logon";
-                    status = "Başarılı";
-                } else if (eventId === "4625") {
-                    loginType = "Failed Windows Logon";
-                    status = "Başarısız";
-                }
-            } 
+    let ruleId = String(src.rule?.id || "N/A");
+
+    let normalizedRuleId =
+        ruleId === "5402" &&
+        /sudo.*root|Successful sudo to ROOT/i.test(
+            `${src.rule?.description || ""} ${src.full_log || ""}`
+        )
+            ? "100009"
+            : ruleId;
+
+    let eventId = String(
+        src.data?.win?.system?.eventID ||
+        src.data?.win?.system?.eventId ||
+        src.data?.win?.system?.EventID ||
+        "N/A"
+    );
+
+    let username = "N/A";
+    let sourceIp = "N/A";
+    let loginType = "N/A";
+    let status = "Başarılı";
+
+            // ÖZEL SIEM USE CASE MAPPING
+if (["100004", "100006", "100009", "100020", "100021"].includes(normalizedRuleId)) {
+
+    username =
+    data.dstuser ||
+    data.srcuser ||
+    data.user ||
+    data.username ||
+    data.db_user ||
+    src.data?.win?.eventdata?.targetUserName ||
+    src.data?.win?.eventdata?.TargetUserName ||
+    src.data?.win?.eventdata?.SubjectUserName ||
+    "N/A";
+
+    sourceIp =
+        data.srcip ||
+        src.data?.win?.eventdata?.ipAddress ||
+        src.data?.win?.eventdata?.IpAddress ||
+        src.agent?.ip ||
+        "127.0.0.1";
+
+    if (normalizedRuleId === "100006") {
+        loginType = "Brute Force + Başarılı Giriş";
+        status = "Başarısız";
+
+    } else if (normalizedRuleId === "100021") {
+        loginType = "MSSQL Başarısız Login";
+        status = "Başarısız";
+
+    } else if (normalizedRuleId === "100020") {
+        loginType = "MSSQL Başarılı Login";
+        status = "Başarılı";
+
+    } else if (normalizedRuleId === "100004") {
+        loginType = "Şüpheli/Farklı IP Girişi";
+        status = "Başarılı";
+
+    } else if (normalizedRuleId === "100009") {
+        loginType = "Linux Yetki Yükseltme";
+        status = "Başarılı";
+    }
+}
+
+// WINDOWS MAPPING
+else if (eventId === "4624" || eventId === "4625") {
+    username = src.data?.win?.eventdata?.targetUserName || src.data?.win?.eventdata?.TargetUserName || "N/A";
+    sourceIp = src.data?.win?.eventdata?.ipAddress || src.data?.win?.eventdata?.IpAddress || "N/A";
+    
+    if (eventId === "4624") {
+        loginType = "Windows Logon";
+        status = "Başarılı";
+    } else if (eventId === "4625") {
+        loginType = "Failed Windows Logon";
+        status = "Başarısız";
+    }
+}
             // LINUX LOCAL CONSOLE MAPPING
             else {
                 username = src.data?.dstuser || "N/A";
@@ -487,7 +556,7 @@ app.get('/api/loglar/kullanici-aktiviteleri', async (req, res) => {
                                     "100006", "100007", "100008", "100009",
                                     "100010", "100011", "100012",
                                     "100014", "100015", "100016",
-                                    "100017", "100019", "100020", "100021", "100022"
+                                    "100017", "100019", "100020", "100021", "100022","5402"
                                 ]
                             }
                         }
@@ -519,6 +588,49 @@ app.get('/api/loglar/kullanici-aktiviteleri', async (req, res) => {
             const winEvent = data.win?.eventdata || {};
             const sqlAuditText = winEvent.data || "";
             const ruleId = String(source.rule?.id || "N/A");
+            const normalizedRuleId =
+  ruleId === "5402" &&
+  /sudo.*root|Successful sudo to ROOT/i.test(
+    `${source.rule?.description || ""} ${source.full_log || ""}`
+  )
+    ? "100009"
+    : ruleId;
+
+let loginType = "";
+let status = "";
+let username = "Bilinmiyor";
+
+if (["100004", "100006", "100020", "100021"].includes(normalizedRuleId)) {
+
+    username =
+        data.dstuser ||
+        data.srcuser ||
+        winEvent.targetUserName ||
+        winEvent.TargetUserName ||
+        "Bilinmiyor";
+
+    if (normalizedRuleId === "100006") {
+        loginType = "Brute Force + Başarılı Giriş";
+        status = "Başarısız";
+    }
+
+    else if (normalizedRuleId === "100021") {
+        loginType = "MSSQL Başarısız Login";
+        status = "Başarısız";
+    }
+
+    else if (normalizedRuleId === "100020") {
+        loginType = "MSSQL Başarılı Login";
+        status = "Başarılı";
+    }
+
+    else if (normalizedRuleId === "100004") {
+        loginType = "Şüpheli/Farklı IP Girişi";
+        status = "Başarılı";
+    }
+}
+
+
             const ruleDesc = source.rule?.description || "Kural açıklaması yok";
             const fullLog = source.full_log || "";
             const agentName = source.agent?.name || "Bilinmiyor";
@@ -658,7 +770,7 @@ if (!command || command === "Komut Yok (Sistem/Korelasyon Olayı)") {
                 kullanici: user,
                 calistirilan_komut: command,
                 olay_tipi: olayTipi,
-                kural_id: ruleId,
+                kural_id: normalizedRuleId,
                 kural_aciklamasi: ruleDesc,
                 ai_cevirisi: aiAnalizi
             };

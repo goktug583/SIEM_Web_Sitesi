@@ -357,7 +357,7 @@ body.executive-mode button{
         <div class="logo-wrapper">
           <img src="logo.jpg" alt="Sporthink Logo" onerror="this.outerHTML='<span style=\'color:black;font-weight:bold;\'>SPORTHINK</span>'" />
         </div>
-        <span>AI-Driven SIEM Panel</span>
+        <span> SIEM Panel</span>
       </div>
       <nav>
         <div class="nav-item active" onclick="switchTab('tab-dashboard', this)"><i class="fa-solid fa-chart-pie"></i> Yönetici Özeti</div>
@@ -839,7 +839,7 @@ Canlı risk değerlendirmesi
         return date.toLocaleDateString('tr-TR') + " " + date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute:'2-digit' });
     }
 
-    // Renk ve Animasyon Stilleri
+  
     if (!document.getElementById('soc-styles')) {
         const style = document.createElement('style');
         style.id = 'soc-styles';
@@ -856,7 +856,7 @@ Canlı risk değerlendirmesi
         document.head.appendChild(style);
     }
 
-    // 1. DONANIM VE HEALTH API'Sİ
+   
     async function fetchHardwareData() {
         try {
             const response = await fetch('/api/donanim');
@@ -1205,6 +1205,14 @@ tbody.innerHTML += `
 
     // 4. AI AKTİVİTELERİ (SADECE ANA EKRAN VE AUDITD İÇİN TEMİZLENDİ)
     async function fetchAiActivities() {
+
+ const auditScreenRules = [
+    "100003", "100009", "100011",
+    "100007", "100012", "100020", "100021", "100022"
+  ];
+
+      
+
         try {
             const response = await fetch('/api/loglar/kullanici-aktiviteleri');
             const loglar = await response.json();
@@ -1444,7 +1452,7 @@ ${socComment}
                 
                 ;
 
-                // B) Sadece gerçek teknik Audit / SQL olaylarını göster
+               
 const teknikAuditMi =
     log.calistirilan_komut &&
     log.calistirilan_komut !== "Komut Yok (Sistem Erişimi)" &&
@@ -1461,9 +1469,8 @@ const teknikAuditMi =
         "100022"
     ].includes(log.kural_id);
 
-if (teknikAuditMi) {
-
-    hasAuditdLog = true;
+if (auditScreenRules.includes(log.kural_id)) {
+  hasAuditdLog = true;
 
     auditdTbody.innerHTML += `
     <tr>
@@ -1535,10 +1542,24 @@ if (teknikAuditMi) {
 
 
 function updateSocSummary(loglar) {
-    const criticalRules = ["100002","100005","100006","100009","100010","100012","100014","100015","100016","100019","100021","100022"];
-    const identityRules = ["100004","100006","100017","100020","100021"];
-    const privilegeRules = ["100002","100009","100015"];
-    const dataRules = ["100003","100007","100011","100012","100019","100020","100021","100022"];
+    const criticalRules = [
+  "100002","100003","100005","100006","100009","100010",
+  "100011","100012","100014","100015","100016","100019",
+  "100021","100022"
+];
+
+const identityRules = [
+  "100004","100006","100017","100020","100021"
+];
+
+const privilegeRules = [
+  "100002","100009","100015"
+];
+
+const dataRules = [
+  "100003","100007","100011","100012","100019",
+  "100020","100021","100022"
+];
 
     const criticalCount = loglar.filter(l => criticalRules.includes(l.kural_id)).length;
     const identityCount = loglar.filter(l => identityRules.includes(l.kural_id)).length;
@@ -1587,6 +1608,7 @@ color:var(--muted)">
 Veri ve MSSQL olayları
 </div>`;
 
+   loglar.sort((a, b) => new Date(b.zaman) - new Date(a.zaman));
    const lastCritical = loglar.find(l => criticalRules.includes(l.kural_id));
 
 document.getElementById("soc-last-action").innerHTML = lastCritical

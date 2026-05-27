@@ -992,15 +992,44 @@ Canlı risk değerlendirmesi
             });
 
             const benzersizIpSayisi = Object.keys(ipListesi).length;
-            const supheliIplerDizisi = Object.keys(ipBasarisizListesi).filter(ip => ipBasarisizListesi[ip] >= 3);
+            const SUPHELI_IP_ESIK = 3;
+
+const supheliIplerDizisi = Object.keys(ipBasarisizListesi)
+    .filter(ip => ipBasarisizListesi[ip] >= SUPHELI_IP_ESIK);
             const supheliIpSayisi = supheliIplerDizisi.length;
             const supheliIplerMetni = supheliIpSayisi > 0 ? supheliIplerDizisi.join('<br>') : 'Tehdit Yok';
 
-            // KPI'ları Ekrana Yazdır
-            document.getElementById('kpi-total').innerText = logs.length;
-            document.getElementById('kpi-failed').innerText = basarisizSayisi;
-            document.getElementById('kpi-unique-ip').innerText = benzersizIpSayisi;
-            document.getElementById('kpi-suspicious').innerHTML = `${supheliIpSayisi} <div style="font-size:10px; color:var(--red); margin-top:4px; font-weight:700; line-height:1.2;">${supheliIplerMetni}</div>`;
+           // Başarılı girişleri hesapla
+const basariliSayisi = logs.filter(
+    log => log.status === "Başarılı"
+).length;
+
+// Toplam giriş = başarılı + başarısız
+const toplamGirisSayisi = basariliSayisi + basarisizSayisi;
+
+
+// KPI'ları Ekrana Yazdır
+document.getElementById('kpi-total').innerText =
+toplamGirisSayisi;
+
+document.getElementById('kpi-failed').innerText =
+basarisizSayisi;
+
+document.getElementById('kpi-unique-ip').innerText =
+benzersizIpSayisi;
+
+document.getElementById('kpi-suspicious').innerHTML =
+`${supheliIpSayisi}
+
+<div style="
+font-size:10px;
+color:var(--red);
+margin-top:4px;
+font-weight:700;
+line-height:1.2;
+">
+${supheliIplerMetni}
+</div>`;
 
 
 let kimlikDurumu = "Normal";
@@ -1031,7 +1060,7 @@ kimlik davranışı tespit edilmiştir.
 
 <br><br>
 
-<strong>${logs.length}</strong> giriş olayı,
+<strong>${toplamGirisSayisi}</strong> giriş olayı,
 
 <strong style="color:var(--red)">
 ${basarisizSayisi}
@@ -1042,6 +1071,11 @@ başarısız giriş,
 <strong>${benzersizIpSayisi}</strong>
 
 farklı IP kaynağı gözlemlenmiştir.
+
+<br><br>
+Şüpheli IP eşiği:
+<strong>${SUPHELI_IP_ESIK}</strong>
+ve üzeri başarısız giriş denemesi olarak belirlenmiştir.
 
 `;
 
@@ -1077,7 +1111,7 @@ farklı IP kaynağı gözlemlenmiştir.
                 data: {
                     labels: ['Başarılı', 'Başarısız'],
                     datasets: [{
-                        data: [logs.length - basarisizSayisi, basarisizSayisi],
+                        data: [basariliSayisi, basarisizSayisi],
                         backgroundColor: ['#22c55e', '#ef4444'],
                         borderWidth: 0
                     }]
@@ -1122,7 +1156,10 @@ const loginTypeMap = {
     "Windows Logon": "Windows Başarılı Giriş",
     "Failed Windows Logon": "Windows Başarısız Giriş",
     "Linux Console Login": "Linux Başarılı Giriş",
-    "Failed Linux Console Login": "Linux Başarısız Giriş"
+    "Failed Linux Console Login": "Linux Başarısız Giriş",
+    "MSSQL Başarılı Login": "MSSQL Başarılı Giriş",
+    "MSSQL Başarısız Login": "MSSQL Başarısız Giriş",
+    "Şüpheli/Farklı IP Girişi": "Şüpheli IP / Farklı Ağ Girişi"
 };
 
 const temizLoginType = loginTypeMap[log.loginType] || log.loginType;
@@ -1207,9 +1244,15 @@ tbody.innerHTML += `
     async function fetchAiActivities() {
 
  const auditScreenRules = [
-    "100003", "100009", "100011",
-    "100007", "100012", "100020", "100021", "100022"
-  ];
+    "100003", // Linux hassas dosya erişimi
+    "100009", // Linux yetki yükseltme
+    "100010", // Servis/log durdurma
+    "100011", // SSH config müdahalesi
+    "100007", // SQL config değişikliği
+    "100012", // Tablo silme
+    "100019", // Çoklu dosya silme
+    "100022"  // Trigger değişikliği
+];
 
       
 
@@ -1236,21 +1279,47 @@ tbody.innerHTML += `
 
 
 if (document.getElementById("audit-sql-count")) {
-   const sqlCount =
-loglar.filter(l =>
-["100007","100012","100020","100021","100022"]
-.includes(l.kural_id)
+   const mssqlRules = [
+    "100007", // SQL Server konfigürasyon değişikliği
+    "100012", // Veritabanı tablo silme
+    "100020", // MSSQL başarılı giriş
+    "100021", // MSSQL başarısız giriş
+    "100022"  // MSSQL trigger değişikliği
+];
+
+const triggerRules = [
+    "100022"
+];
+
+const linuxAuditRules = [
+    "100003", // Linux hassas dosya erişimi
+    "100009", // Linux yetki yükseltme
+    "100011"  // SSH konfigürasyon müdahalesi
+];
+
+const criticalCommandRules = [
+    "100003", // /etc/shadow gibi hassas dosya
+    "100009", // root yetki
+    "100010", // servis durdurma
+    "100011", // sshd_config müdahalesi
+    "100012", // tablo silme
+    "100019"  // çoklu dosya silme
+];
+
+const sqlCount = loglar.filter(l =>
+    mssqlRules.includes(String(l.kural_id))
 ).length;
 
-const triggerCount =
-loglar.filter(l =>
-l.kural_id==="100022"
+const triggerCount = loglar.filter(l =>
+    triggerRules.includes(String(l.kural_id))
 ).length;
 
-const linuxAuditCount =
-loglar.filter(l =>
-["100003","100009","100011"]
-.includes(l.kural_id)
+const linuxAuditCount = loglar.filter(l =>
+    linuxAuditRules.includes(String(l.kural_id))
+).length;
+
+const criticalCommandCount = loglar.filter(l =>
+    criticalCommandRules.includes(String(l.kural_id))
 ).length;
 
 
@@ -1264,10 +1333,7 @@ document.getElementById("audit-linux-count").innerText =
 linuxAuditCount;
 
     document.getElementById("audit-command-count").innerText =
-    loglar.filter(l =>
-        l.calistirilan_komut &&
-        l.calistirilan_komut !== "Kullanıcı / sistem davranışı analiz edildi"
-    ).length;
+criticalCommandCount;
 
 
 
@@ -1276,9 +1342,10 @@ if (document.getElementById("audit-risk-comment")) {
 
     document.getElementById("audit-risk-comment").innerHTML = `
     Son 7 günlük gerçek loglara göre
-    <strong>${sqlCount}</strong> MSSQL olayı,
-    <strong style="color:var(--red);">${triggerCount}</strong> trigger değişikliği
-    ve <strong>${linuxAuditCount}</strong> Linux kritik yetki/dosya olayı izlenmiştir.
+<strong>${sqlCount}</strong> MSSQL olayı,
+<strong style="color:var(--red);">${triggerCount}</strong> trigger değişikliği,
+<strong>${linuxAuditCount}</strong> Linux audit/yetki olayı
+ve <strong style="color:var(--blue);">${criticalCommandCount}</strong> kritik komut davranışı izlenmiştir.
     `;
 }
 
@@ -1542,34 +1609,45 @@ if (auditScreenRules.includes(log.kural_id)) {
 
 
 function updateSocSummary(loglar) {
-    const criticalRules = [
-  "100002","100003","100005","100006","100009","100010",
-  "100011","100012","100014","100015","100016","100019",
-  "100021","100022"
+   const criticalRules = [
+  "100003", "100005", "100006", "100007", "100009",
+  "100010", "100011", "100012", "100014", "100016",
+  "100019", "100022"
 ];
 
 const identityRules = [
-  "100004","100006","100017","100020","100021"
+  "100004", "100006", "100017", "100020", "100021"
 ];
 
 const privilegeRules = [
-  "100002","100009","100015"
+  "100002", "100009", "100015"
 ];
 
 const dataRules = [
-  "100003","100007","100011","100012","100019",
-  "100020","100021","100022"
+  "100003", "100007", "100011", "100012",
+  "100019", "100020", "100021", "100022"
 ];
 
-    const criticalCount = loglar.filter(l => criticalRules.includes(l.kural_id)).length;
-    const identityCount = loglar.filter(l => identityRules.includes(l.kural_id)).length;
-    const privilegeCount = loglar.filter(l => privilegeRules.includes(l.kural_id)).length;
-    const dataCount = loglar.filter(l => dataRules.includes(l.kural_id)).length;
+    const criticalCount = loglar.filter(l =>
+    criticalRules.includes(String(l.kural_id))
+).length;
+
+const identityCount = loglar.filter(l =>
+    identityRules.includes(String(l.kural_id))
+).length;
+
+const privilegeCount = loglar.filter(l =>
+    privilegeRules.includes(String(l.kural_id))
+).length;
+
+const dataCount = loglar.filter(l =>
+    dataRules.includes(String(l.kural_id))
+).length;
 
     const son24Saat = Date.now() - (24 * 60 * 60 * 1000);
 
 const recentCritical = loglar.filter(l =>
-    criticalRules.includes(l.kural_id) &&
+    criticalRules.includes(String(l.kural_id)) &&
     new Date(l.zaman).getTime() > son24Saat
 ).length;
 
@@ -1609,7 +1687,7 @@ Veri ve MSSQL olayları
 </div>`;
 
    loglar.sort((a, b) => new Date(b.zaman) - new Date(a.zaman));
-   const lastCritical = loglar.find(l => criticalRules.includes(l.kural_id));
+   const lastCritical = loglar[0];
 
 document.getElementById("soc-last-action").innerHTML = lastCritical
     ? `
@@ -1718,13 +1796,13 @@ Kimlik, yetki ve veritabanı davranışları merkezi olarak izlenmektedir.
 
 
 const timelineRules = [
-    "100002","100005","100006","100009","100010",
-    "100012","100014","100015","100016","100019",
-    "100021","100022"
+  "100003", "100005", "100006", "100007", "100009",
+  "100010", "100011", "100012", "100014", "100016",
+  "100019", "100022"
 ];
 
 const timelineLogs = loglar
-    .filter(log => timelineRules.includes(log.kural_id))
+    .filter(log => timelineRules.includes(String(log.kural_id)))
     .slice(0,5);
 
 const timelineContainer = document.getElementById("critical-timeline");
@@ -1813,26 +1891,26 @@ if(timelineLogs.length === 0){
 
 function renderSocCharts(loglar){
 
-const categoryRules={
-
-"Kimlik":["100004","100006","100017"],
-
-"Yetki":["100002","100009","100015"],
-
-"Savunma":["100005","100010","100014","100016"],
-
-"Veri/MSSQL":["100003","100007","100011","100012","100019","100020","100021","100022"],
-
-"Keşif":["100008"]
-
+const categoryRules = {
+  "Kimlik": ["100004", "100006", "100017", "100020", "100021"],
+  "Yetki": ["100002", "100009", "100015"],
+  "Savunma": ["100005", "100010", "100014", "100016"],
+  "Veri/MSSQL": ["100003", "100007", "100011", "100012", "100019", "100020", "100021", "100022"],
+  "Keşif": ["100008"]
 };
+
+const criticalRules = [
+  "100003", "100005", "100006", "100007", "100009",
+  "100010", "100011", "100012", "100014", "100016",
+  "100019", "100022"
+];
 
 
 const categoryCounts=Object.keys(categoryRules).map(category=>{
 
 return loglar.filter(log=>
 
-categoryRules[category].includes(log.kural_id)
+categoryRules[category].includes(String(log.kural_id))
 
 ).length;
 
@@ -1842,13 +1920,12 @@ categoryRules[category].includes(log.kural_id)
 
 const serverCounts={};
 
-loglar.forEach(log=>{
-
-const server=log.hedef_sunucu || "Tanımsız";
-
-serverCounts[server]=(serverCounts[server]||0)+1;
-
-});
+loglar
+  .filter(log => criticalRules.includes(String(log.kural_id)))
+  .forEach(log => {
+    const server = log.hedef_sunucu || "Tanımsız";
+    serverCounts[server] = (serverCounts[server] || 0) + 1;
+  });
 
 
 
@@ -1999,7 +2076,7 @@ const auditGroups={
 const labels=Object.keys(auditGroups);
 
 const values=labels.map(label=>
-loglar.filter(log=>auditGroups[label].includes(log.kural_id)).length
+loglar.filter(log=>auditGroups[label].includes(String(log.kural_id))).length
 );
 
 if(auditOperationChartInstance){

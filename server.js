@@ -17,6 +17,235 @@ const axiosInstance = axios.create({
 });
 
 
+// =====================================================
+// MERKEZI SIEM RULE CATALOG
+// Tüm dashboard, KPI ve panel mantığı buradan yönetilecek.
+// ====================================================
+
+const RULE_CATALOG = {
+    // =========================
+    // KIMLIK / LOGIN OLAYLARI
+    // =========================
+
+    "100004": {
+        title: "Şüpheli/Farklı IP Girişi",
+        category: "Kimlik",
+        severity: "medium",
+        kpis: ["identity"],
+        panels: ["dashboard", "identity"]
+    },
+
+    "100006": {
+        title: "Brute Force Sonrası Başarılı Giriş",
+        category: "Kimlik",
+        severity: "critical",
+        kpis: ["critical", "identity"],
+        panels: ["dashboard"]
+    },
+
+    "100020": {
+        title: "MSSQL Başarılı Giriş",
+        category: "Kimlik",
+        severity: "low",
+        kpis: ["identity", "data"],
+        panels: ["identity", "audit"]
+    },
+
+    "100021": {
+        title: "MSSQL Başarısız Giriş",
+        category: "Kimlik",
+        severity: "medium",
+        kpis: ["identity", "data"],
+        panels: ["identity", "audit"]
+    },
+
+    // =========================
+    // YETKI / PRIVILEGE OLAYLARI
+    // =========================
+
+    "100002": {
+        title: "Windows Yetki/Kullanıcı Aksiyonu",
+        category: "Yetki",
+        severity: "medium",
+        kpis: ["privilege"],
+        panels: ["dashboard"]
+    },
+
+    "100009": {
+        title: "Linux Yetki Yükseltme",
+        category: "Yetki",
+        severity: "critical",
+        kpis: ["critical", "privilege"],
+        panels: ["dashboard", "audit"]
+    },
+
+    "100015": {
+        title: "Zamanlanmış Görev Oluşturma",
+        category: "Yetki",
+        severity: "medium",
+        kpis: ["privilege"],
+        panels: ["dashboard"]
+    },
+
+    // =========================
+    // SAVUNMA / DEFENSE EVASION
+    // =========================
+
+    "100005": {
+        title: "Ransomware / Shadow Copy Silme Şüphesi",
+        category: "Savunma",
+        severity: "critical",
+        kpis: ["critical"],
+        panels: ["dashboard"]
+    },
+
+    "100010": {
+        title: "Güvenlik/Log Servisi Durdurma",
+        category: "Savunma",
+        severity: "critical",
+        kpis: ["critical"],
+        panels: ["dashboard", "audit"]
+    },
+
+    "100014": {
+        title: "Windows Security Logları Temizlendi",
+        category: "Savunma",
+        severity: "critical",
+        kpis: ["critical"],
+        panels: ["dashboard"]
+    },
+
+    "100016": {
+        title: "Audit Politikası Değiştirildi",
+        category: "Savunma",
+        severity: "critical",
+        kpis: ["critical"],
+        panels: ["dashboard"]
+    },
+
+    // =========================
+    // VERI / MSSQL / DOSYA
+    // =========================
+
+    "100003": {
+        title: "Linux Hassas Dosya Erişimi",
+        category: "Veri/MSSQL",
+        severity: "critical",
+        kpis: ["critical", "data"],
+        panels: ["dashboard", "audit"]
+    },
+
+    "100007": {
+        title: "SQL Server Konfigürasyon Değişikliği",
+        category: "Veri/MSSQL",
+        severity: "critical",
+        kpis: ["critical", "data"],
+        panels: ["dashboard", "audit"]
+    },
+
+    "100011": {
+        title: "SSH Konfigürasyon Müdahalesi",
+        category: "Veri/MSSQL",
+        severity: "critical",
+        kpis: ["critical", "data"],
+        panels: ["dashboard", "audit"]
+    },
+
+    "100012": {
+        title: "Veritabanı Tablo Silme",
+        category: "Veri/MSSQL",
+        severity: "critical",
+        kpis: ["critical", "data"],
+        panels: ["dashboard", "audit"]
+    },
+
+    "100019": {
+        title: "Çoklu Dosya Silme",
+        category: "Veri/MSSQL",
+        severity: "critical",
+        kpis: ["critical", "data"],
+        panels: ["dashboard"]
+    },
+
+    "100022": {
+        title: "MSSQL Trigger Değişikliği",
+        category: "Veri/MSSQL",
+        severity: "critical",
+        kpis: ["critical", "data"],
+        panels: ["dashboard", "audit"]
+    },
+
+    // =========================
+    // KESIF
+    // =========================
+
+    "100008": {
+        title: "Windows Keşif Komutu",
+        category: "Keşif",
+        severity: "medium",
+        kpis: [],
+        panels: ["dashboard"]
+    },
+
+    // =========================
+    // OTURUM / BILGI
+    // =========================
+
+    "100017": {
+        title: "Windows Oturumu Kapandı",
+        category: "Kimlik",
+        severity: "low",
+        kpis: [],
+        panels: ["identity"]
+    }
+};
+
+
+function normalizeRuleId(ruleId, source = {}) {
+    const id = String(ruleId || "N/A");
+
+    if (
+        id === "5402" &&
+        /sudo.*root|Successful sudo to ROOT|session opened for user root/i.test(
+            `${source.rule?.description || ""} ${source.full_log || ""}`
+        )
+    ) {
+        return "100009";
+    }
+
+    return id;
+}
+
+function getRuleMeta(ruleId) {
+    return RULE_CATALOG[String(ruleId)] || {
+        title: "Genel Güvenlik Olayı",
+        category: "Diğer",
+        severity: "low",
+        kpis: [],
+        panels: ["dashboard"]
+    };
+}
+
+function isCriticalRule(ruleId) {
+    return getRuleMeta(ruleId).kpis.includes("critical");
+}
+
+function isIdentityRule(ruleId) {
+    return getRuleMeta(ruleId).kpis.includes("identity");
+}
+
+function isPrivilegeRule(ruleId) {
+    return getRuleMeta(ruleId).kpis.includes("privilege");
+}
+
+function isDataRule(ruleId) {
+    return getRuleMeta(ruleId).kpis.includes("data");
+}
+
+
+
+
+
 app.get('/health', async (req, res) => {
     const health = {
         backend: "ok",
@@ -103,11 +332,25 @@ app.get('/api/donanim', async (req, res) => {
                                     ]
                                 }
                             },
-                            aggs: {
-                                kritikler: { filter: { range: { "rule.level": { gte: 4 } } } },
-                                basarisiz_loginler: { filter: { match: { "rule.groups": "authentication_failed" } } }
-                            },
-                            size: 0 
+                           aggs: {
+    kritikler: {
+        filter: {
+            terms: {
+                "rule.id": [
+                    "100003", "100005", "100006", "100009",
+                    "100010", "100011", "100012",
+                    "100014", "100016", "100019", "100022"
+                ]
+            }
+        }
+    },
+    basarisiz_loginler: {
+        filter: {
+            match: { "rule.groups": "authentication_failed" }
+        }
+    }
+},
+size: 0
                         };
                         const statRes = await axiosInstance.post(`${process.env.WAZUH_INDEXER_URL}/wazuh-alerts-*/_search`, statQuery, {
                             auth: { username: process.env.WAZUH_INDEXER_USER, password: process.env.WAZUH_INDEXER_PASSWORD }
@@ -227,7 +470,7 @@ app.get('/api/kimlik-loglari', async (req, res) => {
                 }
             },
             sort: [{ timestamp: { order: "desc" } }],
-            size: 50
+            size: 200
         };
 
         // === 2. LINUX BAŞARISIZ CONSOLE SORGUSU (Sadece 2501) ===
@@ -242,7 +485,7 @@ app.get('/api/kimlik-loglari', async (req, res) => {
                 }
             },
             sort: [{ timestamp: { order: "desc" } }],
-            size: 25
+            size: 100
         };
 
         // === 3. LINUX BAŞARILI CONSOLE SORGUSU ===
@@ -261,7 +504,7 @@ const linuxSuccessQuery = {
         }
     },
     sort: [{ timestamp: { order: "desc" } }],
-    size: 25
+    size: 100
 };
 
 
@@ -271,12 +514,20 @@ const customIdentityQuery = {
         bool: {
             must: [
                 { range: { timestamp: { gte: "now-7d" } } },
-                { terms: { "rule.id": ["100004", "100006", "100020", "100021"] } }
+                {
+    terms: {
+        "rule.id": [
+            "100004",
+            "100020",
+            "100021"
+        ]
+    }
+}
             ]
         }
     },
     sort: [{ timestamp: { order: "desc" } }],
-    size: 50
+    size: 200
 };
         const [windowsResponse, linuxFailedResponse, linuxSuccessResponse, customIdentityResponse] = await Promise.all([
     axiosInstance.post(`${process.env.WAZUH_INDEXER_URL}/wazuh-alerts-*/_search`, windowsBaseQuery, authOptions),
@@ -299,6 +550,9 @@ const mappedLogs = combinedRawLogs.map(hit => {
 
     const src = hit._source || {};
     const data = src.data || {};
+
+
+
     const agentName = src.agent?.name || "N/A";
 
     let ruleId = String(src.rule?.id || "N/A");
@@ -326,16 +580,28 @@ const mappedLogs = combinedRawLogs.map(hit => {
             // ÖZEL SIEM USE CASE MAPPING
 if (["100004", "100006", "100009", "100020", "100021"].includes(normalizedRuleId)) {
 
-    username =
-    data.dstuser ||
-    data.srcuser ||
-    data.user ||
-    data.username ||
-    data.db_user ||
-    src.data?.win?.eventdata?.targetUserName ||
-    src.data?.win?.eventdata?.TargetUserName ||
-    src.data?.win?.eventdata?.SubjectUserName ||
-    "N/A";
+ username =
+data.mssql?.user ||
+data.sql?.user ||
+data.db_user ||
+data.username ||
+data.dstuser ||
+data.srcuser ||
+data.user ||
+
+src.data?.win?.eventdata?.targetUserName ||
+src.data?.win?.eventdata?.TargetUserName ||
+src.data?.win?.eventdata?.SubjectUserName ||
+
+src.full_log?.match(/server_principal_name:([^\s]+)/i)?.[1] ||
+
+src.full_log?.match(/user\s+'([^']+)'/i)?.[1] ||
+
+src.full_log?.match(/Login failed for user\s+'([^']+)'/i)?.[1] ||
+
+src.full_log?.match(/Login succeeded for user\s+'([^']+)'/i)?.[1] ||
+
+"sa";
 
     sourceIp =
         data.srcip ||
@@ -344,11 +610,7 @@ if (["100004", "100006", "100009", "100020", "100021"].includes(normalizedRuleId
         src.agent?.ip ||
         "127.0.0.1";
 
-    if (normalizedRuleId === "100006") {
-        loginType = "Brute Force + Başarılı Giriş";
-        status = "Başarısız";
-
-    } else if (normalizedRuleId === "100021") {
+     if (normalizedRuleId === "100021") {
         loginType = "MSSQL Başarısız Login";
         status = "Başarısız";
 
@@ -494,7 +756,7 @@ else if (eventId === "4624" || eventId === "4625") {
             return timeB - timeA;
         });
 
-        res.json(finalLogs.slice(0, 50));
+        res.json(finalLogs.slice(0, 200));
 
     } catch (error) {
         console.error("Kimlik logları çekilirken hata:", error);
@@ -568,7 +830,7 @@ app.get('/api/loglar/kullanici-aktiviteleri', async (req, res) => {
                 }
             },
             sort: [{ timestamp: { order: "desc" } }],
-            size: 50
+            size: 200
         };
 
         const response = await axiosInstance.post(
@@ -643,6 +905,7 @@ if (["100004", "100006", "100020", "100021"].includes(normalizedRuleId)) {
                 "127.0.0.1 (Lokal)";
 
             let user =
+            winEvent.data?.split(",")[0]?.trim() ||
                 data.dstuser ||
                 data.srcuser ||
                 data.user ||
@@ -706,12 +969,40 @@ if (["100004", "100006", "100020", "100021"].includes(normalizedRuleId)) {
             }
 
             if (!command) {
-                if (["100004", "100006", "100017", "100019", "100020", "100021", "100022"].includes(ruleId)) {
-                    command = "Kullanıcı / sistem davranışı analiz edildi";
-                } else {
-                    command = "Komut Yok (Sistem/Korelasyon Olayı)";
-                }
-            }
+    if (["100004", "100006", "100017", "100019", "100020", "100021", "100022"].includes(ruleId)) {
+        command = "Kullanıcı / sistem davranışı analiz edildi";
+    } else {
+        command = "Komut Yok (Sistem/Korelasyon Olayı)";
+    }
+}
+
+
+
+// MSSQL Trigger audit log temizleme
+if (normalizedRuleId === "100022") {
+    user =
+        sqlAuditText.match(/server_principal_name:([^\s]+)/i)?.[1] ||
+        sqlAuditText.match(/session_server_principal_name:([^\s]+)/i)?.[1] ||
+        "sa";
+
+    if (!user || user.includes("audit_schema_version") || user.length > 40) {
+        user = "sa";
+    }
+
+   const triggerStatement =
+    sqlAuditText.match(/statement:([\s\S]*?)(?:additional_information:|user_defined_information:|$)/i)?.[1]?.trim() ||
+    fullLog?.match(/(CREATE\s+TRIGGER[\s\S]*?END)/i)?.[1]?.trim() ||
+    fullLog?.match(/(ALTER\s+TRIGGER[\s\S]*?END)/i)?.[1]?.trim() ||
+    fullLog?.match(/(DROP\s+TRIGGER[^\n\r<]*)/i)?.[1]?.trim();
+
+    if (triggerStatement && /trigger/i.test(triggerStatement)) {
+        command = triggerStatement;
+    } else if (/event enabled/i.test(sqlAuditText)) {
+        command = "SQL Audit olayı etkinleşti — gerçek trigger komutu değil";
+    } else {
+        command = "MSSQL Trigger Değişikliği";
+    }
+}
 
             let olayTipi = "Genel Güvenlik Olayı";
 
@@ -817,31 +1108,16 @@ const temizlenmisLoglar = loglar.filter(log => {
 });
 
 
-        const benzersizLoglar = [];
-        const gorulenler = new Set();
+        const temizlenmisVeDuzenlenmisLoglar = temizlenmisLoglar.map(log => {
+    log.calistirilan_komut = String(log.calistirilan_komut || "")
+        .replace(/net1\.exe/gi, "net.exe");
 
-        temizlenmisLoglar.forEach(log => {
-            let temizKomut = String(log.calistirilan_komut || "")
-                .replace(/net1\.exe/gi, "net.exe");
+    return log;
+});
 
-            const zamanDakika = String(log.zaman || "").slice(0, 16);
+res.json(temizlenmisVeDuzenlenmisLoglar);
 
-            const anahtar = [
-                zamanDakika,
-                log.hedef_sunucu,
-                log.kullanici,
-                log.kural_id,
-                temizKomut
-            ].join("|");
-
-            if (!gorulenler.has(anahtar)) {
-                gorulenler.add(anahtar);
-                log.calistirilan_komut = temizKomut;
-                benzersizLoglar.push(log);
-            }
-        });
-
-        res.json(benzersizLoglar);
+        
 
     } catch (error) {
         console.error("Kullanıcı aktiviteleri çekilirken hata:", error.message);
